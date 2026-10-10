@@ -96,6 +96,7 @@ jobs:
           - CDY_HarmonyOS2.0_RKSU
           - CDY_HarmonyOS3.0_RKSU
           - COR_EMUI9.1_RKSU
+          - POT_EMUI9.0_RKSU
         pm: [false, true]
 
     steps:
@@ -361,6 +362,10 @@ jobs:
             COR_EMUI9.1_RKSU)
               DEFCONFIG="merge_kirin970_defconfig"
               os_version="10"
+              tool="gcc" ;;
+            POT_EMUI9.0_RKSU)
+              DEFCONFIG="merge_kirin710_defconfig"
+              os_version="9"
               tool="gcc" ;;
           esac
 

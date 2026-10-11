@@ -10,7 +10,7 @@ Root 您的设备可能会使保修失效，如果操作不当可能会造成永
 
 |机型名称|机型代码|支持系统|支持情况|所需要求|
 |:---:|:---:|:---:|:---:|:---:|
-|Mate9 系列|MHA|HarmonyOS2.0、EMUI9.0|KernelSU、RKSU、KernelSU-Next、DroidSpace(HarmonyOS2.0)、SukiSU-Ultra、ReSukiSU|无|
+|Mate9 系列|MHA|HarmonyOS2.0、EMUI9.0|KernelSU、RKSU、KernelSU-Next、KernelSU-Next+DroidSpace(HarmonyOS2.0)、SukiSU-Ultra、ReSukiSU|无|
 |Mate10 系列|ALP|EMUI9.1、EMUI9.0|RKSU|无|
 |Mate10 Pro 系列|BLA|EMUI9.1|KernelSU|无|
 |Mate20 Pro 系列|LYA|EMUI9.0|RKSU|无|

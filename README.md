@@ -111,8 +111,9 @@ fastboot flash kernel <内核文件>
 |Nova 5 Pro 系列|SEA-AL10、SEA-TL10、SEA-TL10HKA|EMUI9.1|ReSukiSU|无|
 |Nova 7 SE 系列|CDY|HarmonyOS2.0、HarmonyOS3.0|RKSU|无|
 |畅享9 Plus 系列|JKM|EMUI9.1、HarmonyOS2.0|KernelSU|无|
+|畅享9s 系列|POT|EMUI9.0|RKSU|无|
 |畅享10 Plus 系列|STK|EMUI9.1|RKSU|无|
-|华为畅享8 Plus 系列|FLA|EMUI9.1|RKSU|无|
+|畅享8 Plus 系列|FLA|EMUI9.1|RKSU|无|
 |华为平板M3青春版 系列|CPN|LineageOS17.1|KernelSU-Next|[源内核](https://github.com/Huawei-Dev/android_kernel_huawei_bach)、[所需底包](https://www.coolapk.com/feed/62006426?s=MTU5NjM4YzUxYmZkYjY0ZzZhMTZkYjM2ega1621)|
 
 ### 持续更新中...

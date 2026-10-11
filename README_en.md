@@ -107,8 +107,9 @@ After the device reboots, install the corresponding manager to obtain Root acces
 |Nova 5 Pro Series|SEA-AL10, SEA-TL10, SEA-TL10HKA|EMUI 9.1|ReSukiSU|None|
 |Nova 7 SE Series|CDY|HarmonyOS 2.0, HarmonyOS 3.0|RKSU|None|
 |Enjoy 9 Plus Series|JKM|EMUI 9.1, HarmonyOS 2.0|KernelSU|None|
+|Enjoy 9s Series|POT|EMUI 9.0|RKSU|None|
 |Enjoy 10 Plus Series|STK|EMUI 9.1|RKSU|None|
-|Huawei Enjoy 8 Plus Series|FLA|EMUI 9.1|RKSU|None|
+|Enjoy 8 Plus Series|FLA|EMUI 9.1|RKSU|None|
 |Huawei MediaPad M3 Lite Series|CPN|LineageOS 17.1|KernelSU-Next|[Source kernel](https://github.com/Huawei-Dev/android_kernel_huawei_bach), [Required base package](https://www.coolapk.com/feed/62006426?s=MTU5NjM4YzUxYmZkYjY0ZzZhMTZkYjM2ega1621)|
 
 ### More devices coming...

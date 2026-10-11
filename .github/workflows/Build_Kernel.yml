@@ -55,6 +55,7 @@ jobs:
           - MHA_EMUI9.0_ReSukiSU
           - MHA_HarmonyOS2.0_KernelSU
           - MHA_HarmonyOS2.0_KernelSU-Next
+          - MHA_HarmonyOS2.0_KernelSU-Next_DroidSpace
           - MHA_HarmonyOS2.0_SukiSU-Ultra
           - MHA_HarmonyOS2.0_RKSU
           - MHA_HarmonyOS2.0_ReSukiSU
@@ -169,6 +170,10 @@ jobs:
             os_version="9"
             tool="gcc" ;;
           MHA_HarmonyOS2.0_KernelSU-Next)
+            DEFCONFIG="merge_hi3660_defconfig"
+            os_version="9"
+            tool="gcc" ;;
+          MHA_HarmonyOS2.0_KernelSU-Next_DroidSpace)
             DEFCONFIG="merge_hi3660_defconfig"
             os_version="9"
             tool="gcc" ;;

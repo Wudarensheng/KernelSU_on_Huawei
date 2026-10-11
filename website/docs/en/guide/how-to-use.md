@@ -64,13 +64,13 @@ Open the [Github Actions page for this project](https://github.com/xixiaobei-bei
 
 The naming convention for image files is as follows:
 
-`device-code_base-firmware_KernelSU-type(_SuSFS_KPM)_SELinux-state`
+`device-code_base-firmware_KernelSU-type(_DroidSpace)(_SuSFS_KPM)_SELinux-state`
 
 Example:
 
-`MHA_EMUI9.0_ReSukiSU_SuSFS_KPM_PM.img`
+`MHA_EMUI9.0_ReSukiSU_DroidSpace_SuSFS_KPM_PM.img`
 
-This indicates a ReSukiSU kernel with SuSFS and KPM support for the MHA model running EMUI 9.0, with SELinux in permissive mode.
+This indicates a ReSukiSU with DroidSpace kernel with SuSFS and KPM support for the MHA model running EMUI 9.0, with SELinux in permissive mode.
 
 ## Flashing the Kernel Image File
 

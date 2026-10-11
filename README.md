@@ -35,13 +35,13 @@
 
 ## 命名规则
 
-`机型代码_底包版本_KernelSU类型(_SuSFS_KPM)_SELinux状态`
+`机型代码_底包版本_KernelSU类型(_DroidSpace)(_SuSFS_KPM)_SELinux状态`
 
 例如：
 
-`MHA_EMUI9.0_ReSukiSU_SuSFS_KPM_PM.img`
+`MHA_EMUI9.0_ReSukiSU_DroidSpace_SuSFS_KPM_PM.img`
 
-代表支持MHA型号EMUI9.0底包设备支持带SuSFS和KPM的ReSukiSU内核且SELinux状态为宽容
+代表支持MHA型号EMUI9.0底包设备支持带SuSFS、KPM和DroidSpace的ReSukiSU内核且SELinux状态为宽容
 
 ## 注意事项
 

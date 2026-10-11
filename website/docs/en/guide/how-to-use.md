@@ -10,7 +10,7 @@ First, you should read the list of supported devices:
 
 |Model Name|Model Code|Supported Systems|Support Status|Requirements|
 |:---:|:---:|:---:|:---:|:---:|
-|Mate9 Series|MHA|HarmonyOS 2.0, EMUI 9.0|KernelSU, RKSU, KernelSU-Next, SukiSU-Ultra, ReSukiSU|None|
+|Mate9 Series|MHA|HarmonyOS 2.0, EMUI 9.0|KernelSU, RKSU, KernelSU-Next+DroidSpace(HarmonyOS2.0), SukiSU-Ultra, ReSukiSU|None|
 |Mate10 Series|ALP|EMUI 9.1, EMUI 9.0|RKSU|None|
 |Mate10 Pro Series|BLA|EMUI 9.1|KernelSU|None|
 |Mate20 Pro Series|LYA|EMUI 9.0|RKSU|None|

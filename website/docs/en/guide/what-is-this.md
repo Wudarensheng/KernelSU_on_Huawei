@@ -24,6 +24,10 @@ Huawei devices have both the recovery and boot ramdisk located in the recovery_r
 
 [Interate kernel with SuSFS and KPM](/en/guide/how-to-intergrate-susfs-and-kpm.md)  
 
+## Integrate DroidSpace
+
+[Integrate DroidSpace](/en/guide/how-to-integrate-droidspace.md)  
+
 ## Build
 
 [Build 4.9 kernel](/en/guide/how-to-build-4.9.md)

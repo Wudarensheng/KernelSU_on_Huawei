@@ -24,6 +24,10 @@
 
 [集成带SuSFS和KPM的内核](/guide/how-to-intergrate-susfs-and-kpm.md)
 
+## 集成DroidSpace
+
+[集成DroidSpace](/guide/how-to-integrate-droidspace.md)
+
 ## 编译
 
 [编译4.9内核](/guide/how-to-build-4.9.md)

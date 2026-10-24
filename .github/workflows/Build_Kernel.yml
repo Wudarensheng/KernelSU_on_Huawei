@@ -75,6 +75,7 @@ jobs:
           - SEA-AL10-TL10-TL10HKA_EMUI9.1_ReSukiSU
           - INE_EMUI9.1_RKSU
           - ALP_EMUI9.1_RKSU
+          - ALP_EMUI9.1_SukiSU-Ultra
           - GLK_EMUI9.1_RKSU
           - ALP_EMUI9.0_RKSU
           - BND_EMUI9.1_RKSU
@@ -343,6 +344,10 @@ jobs:
               tool="gcc" ;;
           POT_EMUI9.0_RKSU)
               DEFCONFIG="merge_kirin710_defconfig"
+              os_version="9"
+              tool="gcc" ;;
+          ALP_EMUI9.1_SukiSU-Ultra)
+              DEFCONFIG="merge_kirin970_defconfig"
               os_version="9"
               tool="gcc" ;;
         esac

@@ -17,7 +17,7 @@ on:
         description: 'KernelSU-Next自定义集成命令'
         required: false
         type: string
-        default: 'curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s legacy'
+        default: 'curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/dev/kernel/setup.sh" | bash -s legacy'
       rksu_command:
         description: 'RKSU自定义集成命令'
         required: false
@@ -52,13 +52,13 @@ jobs:
           - MHA_EMUI9.0_KernelSU-Next
           - MHA_EMUI9.0_SukiSU-Ultra
           - MHA_EMUI9.0_RKSU
-          - MHA_EMUI9.0_ReSukiSU
+          - MHA_EMUI9.0_BakaSU
           - MHA_HarmonyOS2.0_KernelSU
           - MHA_HarmonyOS2.0_KernelSU-Next
           - MHA_HarmonyOS2.0_KernelSU-Next_DroidSpace
           - MHA_HarmonyOS2.0_SukiSU-Ultra
           - MHA_HarmonyOS2.0_RKSU
-          - MHA_HarmonyOS2.0_ReSukiSU
+          - MHA_HarmonyOS2.0_BakaSU
           - DUK_HarmonyOS2.0_KernelSU
           - VCE_EMUI9.0_KernelSU
           - VCE_EMUI9.0_SukiSU-Ultra
@@ -72,7 +72,7 @@ jobs:
           - STF_EMUI9.0_KernelSU
           - STK_EMUI9.1_RKSU
           - SEA-AL00-TL00_EMUI9.1_RKSU
-          - SEA-AL10-TL10-TL10HKA_EMUI9.1_ReSukiSU
+          - SEA-AL10-TL10-TL10HKA_EMUI9.1_BakaSU
           - INE_EMUI9.1_RKSU
           - ALP_EMUI9.1_RKSU
           - ALP_EMUI9.1_SukiSU-Ultra
@@ -160,11 +160,11 @@ jobs:
             DEFCONFIG="merge_hi3660_defconfig"
             os_version="9"
             tool="gcc" ;;
-          MHA_EMUI9.0_ReSukiSU)
+          MHA_EMUI9.0_BakaSU)
             DEFCONFIG="merge_hi3660_defconfig"
             os_version="9"
             tool="gcc" ;;
-          MHA_EMUI9.0_ReSukiSU_SuSFS_KPM)
+          MHA_EMUI9.0_BakaSU_SuSFS_KPM)
             DEFCONFIG="merge_hi3660_defconfig"
             os_version="9"
             tool="gcc" ;;
@@ -188,11 +188,11 @@ jobs:
             DEFCONFIG="merge_hi3660_defconfig"
             os_version="9"
             tool="gcc" ;;
-          MHA_HarmonyOS2.0_ReSukiSU)
+          MHA_HarmonyOS2.0_BakaSU)
             DEFCONFIG="merge_hi3660_defconfig"
             os_version="9"
             tool="gcc" ;;
-          MHA_HarmonyOS2.0_ReSukiSU_SuSFS_KPM)
+          MHA_HarmonyOS2.0_BakaSU_SuSFS_KPM)
             DEFCONFIG="merge_hi3660_defconfig"
             os_version="9"
             tool="gcc" ;;
@@ -292,7 +292,7 @@ jobs:
             DEFCONFIG="merge_kirin980_defconfig"
             os_version="9"
             tool="gcc" ;;
-          SEA-AL10-TL10-TL10HKA_EMUI9.1_ReSukiSU)
+          SEA-AL10-TL10-TL10HKA_EMUI9.1_BakaSU)
             DEFCONFIG="merge_kirin980_defconfig"
             os_version="9"
             tool="gcc" ;;

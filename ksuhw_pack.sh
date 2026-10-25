@@ -2,6 +2,13 @@
 set -euo pipefail
 export LC_ALL=C          # 保证 ${#str} 按字节计数, cmdline 是 ASCII
 
+# PM_STATE=TRUE -> permissive, 其他(FALSE/空) -> enforcing
+if [ "${PM_STATE^^}" = "TRUE" ]; then
+    SELINUX_MODE="permissive"
+else
+    SELINUX_MODE="enforcing"
+fi
+
 HEADER="${HEADER:-${PWD}/stock/header.bin}"
 TAIL="${TAIL:-${PWD}/stock/tail.bin}"
 DTB_BLOB="${DTB_BLOB:-${PWD}/stock/dtb_blob.bin}"

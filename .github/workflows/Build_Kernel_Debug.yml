@@ -523,6 +523,8 @@ jobs:
           fi
 
           if [ -f "ksuhw_build.sh" ]; then
+            export PM_STATE="${{ matrix.pm }}"
+            export ARTIFACT_NAME="${ARTIFACT_NAME}"
             bash ./ksuhw_build.sh
           else
             if [ "${{ matrix.pm }}" = "true" ]; then

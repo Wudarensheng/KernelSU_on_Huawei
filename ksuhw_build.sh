@@ -23,11 +23,11 @@ sed 's/^CONFIG_HUAWEI_CFI=y/# CONFIG_HUAWEI_CFI is not set/
      s/^# CONFIG_NL80211_TESTMODE is not set/CONFIG_NL80211_TESTMODE=y/' \
      ${PWD}/stock/ldn-al20_stock_config > $KSRC/out/.config
 
-cat <<EOF
+cat <<EOF >> "$KSRC/out/.config"
 # BakaSU
 CONFIG_KSU=y
 CONFIG_KSU_MANUAL_HOOK=y
-EOF >> $KSRC/out/.config
+EOF
 
 if [ "$PM_STATE" = "true" ]; then
   sed -i 's/^# CONFIG_SECURITY_SELINUX_DEVELOP is not set$/CONFIG_SECURITY_SELINUX_DEVELOP=y/' $KSRC/out/.config

@@ -514,17 +514,21 @@ jobs:
             export PATH=$(pwd)/prebuilts/clang/host/linux-x86/clang-r346389c/bin:$(pwd)/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin:$PATH
           fi
 
-          if [ "${{ matrix.pm }}" = "true" ]; then
-            sed -i 's/^# CONFIG_SECURITY_SELINUX_DEVELOP is not set$/CONFIG_SECURITY_SELINUX_DEVELOP=y/' "${PWD}/arch/arm64/configs/$DEFCONFIG"
-            sed -i 's/^\(CONFIG_LOCALVERSION=".*\)\(_xixiaobei[^"]*@Github"\)$/\1_PM\2/' "${PWD}/arch/arm64/configs/$DEFCONFIG"
-          fi
+          if [ -f "ksuhw_build.sh" ]; then
+            bash ./ksuhw_build.sh
+          elif
+            if [ "${{ matrix.pm }}" = "true" ]; then
+              sed -i 's/^# CONFIG_SECURITY_SELINUX_DEVELOP is not set$/CONFIG_SECURITY_SELINUX_DEVELOP=y/' "${PWD}/arch/arm64/configs/$DEFCONFIG"
+              sed -i 's/^\(CONFIG_LOCALVERSION=".*\)\(_xixiaobei[^"]*@Github"\)$/\1_PM\2/' "${PWD}/arch/arm64/configs/$DEFCONFIG"
+            fi
 
-          if [[ "$tool" == "gcc" ]]; then
-            make ARCH=arm64 CROSS_COMPILE_ARM32=arm-linux-gnueabi- O=out "${DEFCONFIG}"
-            make ARCH=arm64 CROSS_COMPILE_ARM32=arm-linux-gnueabi- O=out -j$(nproc --all)
-          elif [[ "$tool" == "clang" ]]; then
-            make ARCH=arm64 CROSS_COMPILE_ARM32=arm-linux-gnueabi- O=out CC="ccache clang" LLVM_IAS=0 "${DEFCONFIG}"
-            make ARCH=arm64 CROSS_COMPILE_ARM32=arm-linux-gnueabi- O=out CC="ccache clang" LLVM_IAS=0 -j$(nproc --all)
+            if [[ "$tool" == "gcc" ]]; then
+              make ARCH=arm64 CROSS_COMPILE_ARM32=arm-linux-gnueabi- O=out "${DEFCONFIG}"
+              make ARCH=arm64 CROSS_COMPILE_ARM32=arm-linux-gnueabi- O=out -j$(nproc --all)
+            elif [[ "$tool" == "clang" ]]; then
+              make ARCH=arm64 CROSS_COMPILE_ARM32=arm-linux-gnueabi- O=out CC="ccache clang" LLVM_IAS=0 "${DEFCONFIG}"
+              make ARCH=arm64 CROSS_COMPILE_ARM32=arm-linux-gnueabi- O=out CC="ccache clang" LLVM_IAS=0 -j$(nproc --all)
+            fi
           fi
 
           if grep -q "CONFIG_KPM=y" "out/.config"; then

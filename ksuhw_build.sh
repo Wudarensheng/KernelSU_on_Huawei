@@ -27,7 +27,7 @@ cat <<EOF
 # BakaSU
 CONFIG_KSU=y
 CONFIG_KSU_MANUAL_HOOK=y
-EOF
+EOF >> $KSRC/out/.config
 
 if [ "$PM_STATE" = "true" ]; then
   sed -i 's/^# CONFIG_SECURITY_SELINUX_DEVELOP is not set$/CONFIG_SECURITY_SELINUX_DEVELOP=y/' $KSRC/out/.config

@@ -97,6 +97,7 @@ jobs:
           - COR_EMUI9.1_RKSU
           - POT_EMUI9.0_RKSU
           - ELS-AL00_EMUI10.1_RKSU
+          - LDN_EMUI8.0_BakaSU
         pm: [false, true]
 
     steps:
@@ -355,6 +356,10 @@ jobs:
               DEFCONFIG="merge_kirin990_defconfig"
               os_version="10"
               tool="clang" ;;
+          LDN_EMUI8.0_BakaSU)
+              DEFCONFIG="auto"
+              os_version="8"
+              tool="gcc" ;;
         esac
 
         if [ -z "$DEFCONFIG" ]; then

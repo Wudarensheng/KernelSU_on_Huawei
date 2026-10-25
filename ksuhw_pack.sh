@@ -5,7 +5,7 @@ export LC_ALL=C          # 保证 ${#str} 按字节计数, cmdline 是 ASCII
 HEADER="${HEADER:-${PWD}/stock/header.bin}"
 TAIL="${TAIL:-${PWD}/stock/tail.bin}"
 DTB_BLOB="${DTB_BLOB:-${PWD}/stock/dtb_blob.bin}"
-GZ="${GZ:-${PWD}/kernel-source/out/Image.gz}"
+GZ="${GZ:-${PWD}/kernel-source/out/arch/arm6/boot/Image.gz}"
 OUT="${OUT:-${PWD}/kernel.img}"
 EXTRA_CMDLINE="${1:-}"
 

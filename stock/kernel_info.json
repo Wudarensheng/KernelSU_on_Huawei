@@ -1,0 +1,35 @@
+{
+  "source_file": "kernel.img",
+  "file_size": 51048448,
+  "file_sha256": "887d2cf7762a3b45994381501142055ddf58671097b094f28069bbb1344e5a20",
+  "header": {
+    "size": 2048,
+    "sha256": "623d3c83102d292a169b5912a9c061071d18f59aba04d7c78bfe37841389416f",
+    "name": "",
+    "cmdline": "androidboot.hardware=qcom msm_rtb.filter=0x237 ehci-hcd.park=3 lpm_levels.sleep_disabled=1 androidboot.bootdevice=7824900.sdhci slub_min_objects=12 unmovable_isolate1=2:192M,3:224M,4:256M unmovable_isolate2=2:64M,3:80M,4:80M androidboot.selinux=enforcing androidboot.selinux=enforcing buildvariant=user",
+    "kernel_size": 51046044,
+    "kernel_addr": "0x80008000",
+    "ramdisk_size": 0,
+    "ramdisk_addr": "0x82000000",
+    "second_size": 0,
+    "second_addr": "0x80f00000",
+    "tags_addr": "0x80000100",
+    "page_size": 2048,
+    "os_version_raw": "0x00000000",
+    "os_patch_level_raw": "0x10000142"
+  },
+  "image_gz": {
+    "size": 11628575,
+    "sha256": "1b3275a7483956c96b8024945e1c3bed5e55de4b1d619cd503cb2ff1b90f18be"
+  },
+  "dtb_blob": {
+    "size": 39417469,
+    "sha256": "f4ebccea7f72730d35365ec8542c5e77de25ef890acbe255e17ce0264d32b57b",
+    "magic": "d00dfeed",
+    "qcdt": null
+  },
+  "tail": {
+    "size": 356,
+    "sha256": "0b449271fd1144706bf5906e35493614c6a9bacc6c4ac786e1ab8f8268f9ea0c"
+  }
+}

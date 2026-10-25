@@ -8,7 +8,6 @@ out/
 *.dtb
 *.dtbo
 *.cpio
-*.bin
 Image
 Image.gz
 *.map

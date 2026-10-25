@@ -99,7 +99,7 @@ jobs:
           - CDY_HarmonyOS3.0_RKSU
           - COR_EMUI9.1_RKSU
           - POT_EMUI9.0_RKSU
-          - ELS_EMUI10.1_RKSU
+          - ELS-AL00_EMUI10.1_RKSU
         pm: [false, true]
 
     steps:
@@ -378,7 +378,7 @@ jobs:
               DEFCONFIG="merge_kirin970_defconfig"
               os_version="9"
               tool="gcc" ;;
-            ELS_EMUI10.1_RKSU)
+            ELS-AL00_EMUI10.1_RKSU)
               DEFCONFIG="merge_kirin990_defconfig"
               os_version="10"
               tool="clang" ;;

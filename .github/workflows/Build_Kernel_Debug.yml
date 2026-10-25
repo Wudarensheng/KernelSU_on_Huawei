@@ -17,11 +17,11 @@ on:
         required: false
         type: string
         default: 'curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash -s builtin'
-      resukisu_command:
-        description: 'ReSukiSU自定义集成命令'
+      bakasu_command:
+        description: 'BakaSU自定义集成命令'
         required: false
         type: string
-        default: 'curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash'
+        default: 'curl -LSs "https://raw.githubusercontent.com/Baka-SU/BakaSU/main/kernel/setup.sh" | bash'
       selected_branches:
         description: '要编译的分支名称，多个用英文逗号分隔（留空表示全部）'
         required: false
@@ -467,10 +467,10 @@ jobs:
                 ${{ github.event.inputs.sukisu_command }}
                 cd KernelSU
                 git reset --hard 4a0c01e
-              elif [[ "$BRANCH" == *"ReSukiSU"* ]]; then
-                echo "Branch contains ReSukiSU: running ReSukiSU setup"
+              elif [[ "$BRANCH" == *"BakaSU"* ]]; then
+                echo "Branch contains BakaSU: running BakaSU setup"
                 rm -rf KernelSU
-               ${{ github.event.inputs.resukisu_command }}
+               ${{ github.event.inputs.bakasu_command }}
              else
                echo "No KernelSU-related branch pattern matched; skipping vendor kernel setup"
               fi

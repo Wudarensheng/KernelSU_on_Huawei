@@ -521,16 +521,10 @@ jobs:
           echo "未检测到 CONFIG_KPM 开启，跳过 KPM 修补流程。"
         fi
 
-        if [ -f "tools/mkbootimg" ]; then
-          cp ./out/arch/arm64/boot/Image.gz ./tools/
-          sed -i 's/--kernel[[:space:]]\+kernel/--kernel Image.gz/g' tools/pack_kernerimage_cmd.sh
-          sed -i 's/--output[[:space:]]\+.*$/--output "${ARTIFACT_NAME}.img"/g' tools/pack_kernerimage_cmd.sh
-          sed -i 's/androidboot.selinux=enforcing/androidboot.selinux=${SELINUX_MODE}/g' tools/pack_kernerimage_cmd.sh
-          sed -i 's/androidboot.selinux=permissive/androidboot.selinux=${SELINUX_MODE}/g' tools/pack_kernerimage_cmd.sh
-          sed -i 's/\(--os_patch_level\)[[:space:]]\+[^[:space:]]\+[[:space:]]\+\(--output[[:space:]]\+"${ARTIFACT_NAME}\.img"\)/\1 "$CURRENT_DATE" \2/g' tools/pack_kernerimage_cmd.sh
-        fi
-
-        if [ "$os_version" = "9" ]; then
+        if [ -f "ksuhw_pack.sh" ]; then
+          bash ./ksuhw_pack.sh
+        else
+          if [ "$os_version" = "9" ]; then
             cmdline=(
                 --kernel out/arch/arm64/boot/Image.gz
                 --base 0x0
@@ -543,7 +537,7 @@ jobs:
                 --os_patch_level "$CURRENT_DATE"
                 --output "${ARTIFACT_NAME}.img"
             )
-        elif [ "$os_version" = "8" ]; then
+          elif [ "$os_version" = "8" ]; then
             cmdline=(
                 --kernel out/arch/arm64/boot/Image.gz
                 --base 0x400000
@@ -555,7 +549,7 @@ jobs:
                 --os_patch_level "$CURRENT_DATE"
                 --output "${ARTIFACT_NAME}.img"
             )
-        elif [ "$os_version" = "10" ]; then
+          elif [ "$os_version" = "10" ]; then
             cmdline=(
                 --kernel out/arch/arm64/boot/Image.gz
                 --base 0x0
@@ -568,10 +562,17 @@ jobs:
                 --os_patch_level "$CURRENT_DATE"
                 --output "${ARTIFACT_NAME}.img"
             )
+          fi
         fi
 
         if [ -f "tools/mkbootimg" ]; then
           echo "使用 tools/mkbootimg 生成镜像..."
+          cp ./out/arch/arm64/boot/Image.gz ./tools/
+          sed -i 's/--kernel[[:space:]]\+kernel/--kernel Image.gz/g' tools/pack_kernerimage_cmd.sh
+          sed -i 's/--output[[:space:]]\+.*$/--output "${ARTIFACT_NAME}.img"/g' tools/pack_kernerimage_cmd.sh
+          sed -i 's/androidboot.selinux=enforcing/androidboot.selinux=${SELINUX_MODE}/g' tools/pack_kernerimage_cmd.sh
+          sed -i 's/androidboot.selinux=permissive/androidboot.selinux=${SELINUX_MODE}/g' tools/pack_kernerimage_cmd.sh
+          sed -i 's/\(--os_patch_level\)[[:space:]]\+[^[:space:]]\+[[:space:]]\+\(--output[[:space:]]\+"${ARTIFACT_NAME}\.img"\)/\1 "$CURRENT_DATE" \2/g' tools/pack_kernerimage_cmd.sh
           cd tools
           bash ./pack_kernerimage_cmd.sh
           cd ..

@@ -1480,7 +1480,7 @@ extern int ksu_handle_execve(int *fd, const char *filename,
 				void *argv, void *envp, int *flags);
 __attribute__((hot))
 extern int ksu_handle_post_execve(int *fd, const char *filename,
-				void *argv, void *envp, int *flags, int *retval)
+				void *argv, void *envp, int *flags, int *retval);
 #endif
 
 /*

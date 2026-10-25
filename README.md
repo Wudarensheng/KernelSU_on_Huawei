@@ -4,7 +4,7 @@
 
 - 适用于华为的KernelSU内核！
 
-- 现支持KernelSU、RKSU、KernelSU-Next、SukiSU-Ultra和ReSukiSU
+- 现支持KernelSU、RKSU、KernelSU-Next、SukiSU-Ultra和BakaSU
 
 - 感谢各位贡献作者，我只是站在了巨人的肩膀上
 
@@ -39,9 +39,9 @@
 
 例如：
 
-`MHA_EMUI9.0_ReSukiSU_DroidSpace_SuSFS_KPM_PM.img`
+`MHA_EMUI9.0_BakaSU_DroidSpace_SuSFS_KPM_PM.img`
 
-代表支持MHA型号EMUI9.0底包设备支持带SuSFS、KPM和DroidSpace的ReSukiSU内核且SELinux状态为宽容
+代表支持MHA型号EMUI9.0底包设备支持带SuSFS、KPM和DroidSpace的BakaSU内核且SELinux状态为宽容
 
 ## 注意事项
 
@@ -76,7 +76,7 @@ fastboot flash kernel <内核文件>
 |RKSU|v3.0.0-30-legacy|[GithubReleases](https://github.com/rsuntk/KernelSU/releases/download/v3.0.0-30-legacy/KernelSU_v3.0.0-30-legacy_32334-release.apk)
 |KernelSU-Next|最新版|[GithubReleases](https://github.com/KernelSU-Next/KernelSU-Next/releases)|
 |SukiSU-Ultra|最新版|[GithubReleases](https://github.com/SukiSU-Ultra/SukiSU-Ultra/releases)|
-|ReSukiSU|最新版|[GithubActions](https://github.com/ReSukiSU/ReSukiSU/actions/workflows/build-manager.yml)
+|BakaSU|最新版|[GithubActions](https://github.com/Baka-SU/BakaSU/actions/workflows/build-manager.yml)
 
 > [!NOTE]
 >
@@ -86,7 +86,7 @@ fastboot flash kernel <内核文件>
 # 支持设备
 |机型名称|机型代码|支持系统|支持情况|更多链接|
 |:---:|:---:|:---:|:---:|:---:|
-|Mate9 系列|MHA|HarmonyOS2.0、EMUI9.0|KernelSU、RKSU、KernelSU-Next、KernelSU-Next+DroidSpace(HarmonyOS2.0)、SukiSU-Ultra、ReSukiSU|无|
+|Mate9 系列|MHA|HarmonyOS2.0、EMUI9.0|KernelSU、RKSU、KernelSU-Next、KernelSU-Next+DroidSpace(HarmonyOS2.0)、SukiSU-Ultra、BakaSU|无|
 |Mate10 系列|ALP|EMUI9.1、EMUI9.0|RKSU|无|
 |Mate10 Pro 系列|BLA|EMUI9.1|KernelSU|[android_kernel_huawei_blanc](https://github.com/Coconutat/android_kernel_huawei_blanc)|
 |Mate20 Pro 系列|LYA|EMUI9.0|RKSU|无|
@@ -108,7 +108,7 @@ fastboot flash kernel <内核文件>
 |Nova4e 系列|MAR|EMUI10.0|RKSU|无|
 |Nova 5i 系列|GLK|EMUI9.1|RKSU|无|
 |Nova 5 系列|SEA-AL00、SEA-TL00|EMUI9.1|RKSU|无|
-|Nova 5 Pro 系列|SEA-AL10、SEA-TL10、SEA-TL10HKA|EMUI9.1|ReSukiSU|无|
+|Nova 5 Pro 系列|SEA-AL10、SEA-TL10、SEA-TL10HKA|EMUI9.1|BakaSU|无|
 |Nova 7 SE 系列|CDY|HarmonyOS2.0、HarmonyOS3.0|RKSU|无|
 |畅享9 Plus 系列|JKM|EMUI9.1、HarmonyOS2.0|KernelSU|无|
 |畅享9s 系列|POT|EMUI9.0|RKSU|无|
@@ -185,7 +185,7 @@ KernelSU模块有关：
 
 - [SukiSU-Ultra](https://github.com/SukiSU-Ultra) / [SukiSU-Ultra](https://github.com/SukiSU-Ultra/SukiSU-Ultra)——SukiSU-Ultra作者
 
-- [ReSukiSU](https://github.com/ReSukiSU) / [ReSukiSU](https://github.com/ReSukiSU/ReSukiSU)——添加SukiSU-Ultra在5系内核以下的支持
+- [Baka-SU](https://github.com/Baka-SU) / [BakaSU](https://github.com/Baka-SU/BakaSU)——添加SukiSU-Ultra在5系内核以下的支持
 
 - [Coconutat](https://github.com/Coconutat)——参与部分项目维护工作
 

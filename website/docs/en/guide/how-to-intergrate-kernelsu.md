@@ -592,15 +592,15 @@ SukiSU-Ultra cannot obtain root on EMUI systems, you need to use another system.
 
 :::
 
-## Integrate ReSukiSU
+## Integrate BakaSU
 
 ### 1.Pull the Sources Code
 
 ```shell
-curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
+curl -LSs "https://raw.githubusercontent.com/Baka-SU/BakaSU/main/kernel/setup.sh" | bash
 ```
 
-### 2.Enable ReSukiSU
+### 2.Enable BakaSU
 
 Add the following lines to the end of your device's defconfig file:
 
@@ -618,6 +618,6 @@ CONFIG_KSU_DEBUG=y
 
 ### 3.Apply Patches
 
-Refer to the [ReSukiSU offical webside](https://resukisu.github.io/guide/manual-integrate.html) to modify.
+Refer to the [BakaSU offical webside](https://bakasu.org/guide/manual-integrate) to modify.
 
 Even if your kernel version is lower than 4.19, you still need to use the version of the sys_read hook intended for 4.19+.

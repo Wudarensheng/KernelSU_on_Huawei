@@ -10,7 +10,7 @@ First, you should read the list of supported devices:
 
 |Model Name|Model Code|Supported Systems|Support Status|Requirements|
 |:---:|:---:|:---:|:---:|:---:|
-|Mate9 Series|MHA|HarmonyOS 2.0, EMUI 9.0|KernelSU, RKSU, KernelSU-Next+DroidSpace(HarmonyOS2.0), SukiSU-Ultra, ReSukiSU|None|
+|Mate9 Series|MHA|HarmonyOS 2.0, EMUI 9.0|KernelSU, RKSU, KernelSU-Next+DroidSpace(HarmonyOS2.0), SukiSU-Ultra, BakaSU|None|
 |Mate10 Series|ALP|EMUI 9.1, EMUI 9.0|RKSU|None|
 |Mate10 Pro Series|BLA|EMUI 9.1|KernelSU|None|
 |Mate20 Pro Series|LYA|EMUI 9.0|RKSU|None|
@@ -32,7 +32,7 @@ First, you should read the list of supported devices:
 |Nova 4e Series|MAR|EMUI 10.0|RKSU|None|
 |Nova 5i Series|GLK|EMUI 9.1|RKSU|None|
 |Nova 5 Series|SEA-AL00, SEA-TL00|EMUI 9.1|RKSU|None|
-|Nova 5 Pro Series|SEA-AL10, SEA-TL10, SEA-TL10HKA|EMUI 9.1|ReSukiSU|None|
+|Nova 5 Pro Series|SEA-AL10, SEA-TL10, SEA-TL10HKA|EMUI 9.1|BakaSU|None|
 |Nova 7 SE Series|CDY|HarmonyOS 2.0, HarmonyOS 3.0|RKSU|None|
 |Enjoy 9 Plus Series|JKM|EMUI 9.1, HarmonyOS 2.0|KernelSU|None|
 |Enjoy 9s Series|POT|EMUI 9.0|RKSU|None|
@@ -68,9 +68,9 @@ The naming convention for image files is as follows:
 
 Example:
 
-`MHA_EMUI9.0_ReSukiSU_DroidSpace_SuSFS_KPM_PM.img`
+`MHA_EMUI9.0_BakaSU_DroidSpace_SuSFS_KPM_PM.img`
 
-This indicates a ReSukiSU with DroidSpace kernel with SuSFS and KPM support for the MHA model running EMUI 9.0, with SELinux in permissive mode.
+This indicates a BakaSU with DroidSpace kernel with SuSFS and KPM support for the MHA model running EMUI 9.0, with SELinux in permissive mode.
 
 ## Flashing the Kernel Image File
 
@@ -102,7 +102,7 @@ After restarting the device, install the corresponding manager to obtain root pr
 |RKSU|v3.0.0-30-legacy|[GithubReleases](https://github.com/rsuntk/KernelSU/releases/download/v3.0.0-30-legacy/KernelSU_v3.0.0-30-legacy_32334-release.apk)
 |KernelSU-Next|Latest Version| [GithubReleases](https://github.com/KernelSU-Next/KernelSU-Next/releases)|
 |SukiSU-Ultra|4.1.2|[GithubReleases](https://github.com/SukiSU-Ultra/SukiSU-Ultra/releases/download/v4.1.2/SukiSU_v4.1.2_40545-release.apk)|
-|ReSukiSU|Latest Version|[GithubActions](https://github.com/ReSukiSU/ReSukiSU/actions/workflows/build-manager.yml)
+|BakaSU|Latest Version|[GithubActions](https://github.com/Baka-SU/BakaSU/actions/workflows/build-manager.yml)
 
 :::tip
 

@@ -157,7 +157,7 @@ diff -uNr a/security/selinux/hooks.c b/security/selinux/hooks.c
 Currently:
 SuSFS v2.0.0 supports kernel v4.14.xxx (EMUI 10+) and v4.9.xxx (EMUI 9+).
 SuSFS v2.2.0 only supports kernel v4.9.xxx (EMUI 9+).  
-Compatible with ReSukiSU and SukiSU-Ultra (other KernelSU branches should also support it theoretically, please test on your own).
+Compatible with BakaSU and SukiSU-Ultra (other KernelSU branches should also support it theoretically, please test on your own).
 
 If you are using the SuSFS v2.0.0 patch for the 4.9 kernel, KPM is already integrated. You do not need to apply the patch again, but you need to add `CONFIG_KPM=y` to the defconfig file and patch the kernel to enable KPM.
 
@@ -165,16 +165,16 @@ If you are using the SuSFS v2.0.0 patch for the 4.9 kernel, KPM is already integ
 
 :::warning
 
-The new version of ReSukiSU has removed KPM support. If you still need to integrate KPM, please use an older version of ReSukiSU + SuSFS v2.0.0 patch, or use SukiSU-Ultra.
+The new version of BakaSU has removed KPM support. If you still need to integrate KPM, please use an older version of BakaSU + SuSFS v2.0.0 patch, or use SukiSU-Ultra.
 
 :::
 
 ::: details Patching for 4.9 Kernel
 
-To use ReSukiSU, run the following command in the kernel source directory:
+To use BakaSU, run the following command in the kernel source directory:
 
 ```shell
-curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
+curl -LSs "https://raw.githubusercontent.com/Baka-SU/BakaSU/main/kernel/setup.sh" | bash
 ```
 
 To use SukiSU-Ultra, run the following command in the kernel source directory:
@@ -197,10 +197,10 @@ You can manually apply the patch based on the error locations indicated in the `
 
 ::: details Legacy - Applying SuSFS v2.0.0 Patch for 4.9 Kernel
 
-ReSukiSU needs to use an older version. Run the following commands in the kernel source directory:
+BakaSU needs to use an older version. Run the following commands in the kernel source directory:
 
 ```shell
-curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
+curl -LSs "https://raw.githubusercontent.com/Baka-SU/BakaSU/main/kernel/setup.sh" | bash
 cd KernelSU
 git reset --hard a13d71f
 ```
@@ -219,10 +219,10 @@ You can manually apply the patch based on the error locations indicated in the `
 
 ::: details Patching for 4.14 Kernel
 
-Since the 4.14 kernel only has SuSFS v2.0.0, ReSukiSU also needs to use an older version. Run the following commands in the kernel source directory:
+Since the 4.14 kernel only has SuSFS v2.0.0, BakaSU also needs to use an older version. Run the following commands in the kernel source directory:
 
 ```shell
-curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
+curl -LSs "https://raw.githubusercontent.com/Baka-SU/BakaSU/main/kernel/setup.sh" | bash
 cd KernelSU
 git reset --hard a13d71f
 ```
@@ -242,7 +242,7 @@ You can manually apply the patch based on the error locations indicated in the `
 Then add the following to the defconfig:
 
 ```text
-# ReSukiSU - SuSFS
+# BakaSU - SuSFS
 CONFIG_KSU=y
 CONFIG_KSU_SUSFS=y
 CONFIG_KSU_SUSFS_SUS_PATH=y
@@ -266,10 +266,10 @@ If you have already integrated SuSFS and pulled the source code, you can skip th
 
 :::
 
-To use ReSukiSU, run the following commands in the kernel source directory:
+To use BakaSU, run the following commands in the kernel source directory:
 
 ```shell
-curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
+curl -LSs "https://raw.githubusercontent.com/Baka-SU/BakaSU/main/kernel/setup.sh" | bash
 cd KernelSU
 git reset --hard a13d71f
 ```
@@ -590,12 +590,12 @@ diff -ruN a/security/Makefile b/security/Makefile
 ```
 :::
 
-:::details Patching for ReSukiSU
+:::details Patching for BakaSU
 
 Add the following lines at the end of your device's defconfig file:
 
 ```text
-# ReSukiSU
+# BakaSU
 CONFIG_KSU=y
 CONFIG_KSU_MANUAL_HOOK=y
 ```
@@ -606,7 +606,7 @@ To enable debug mode for KernelSU, you also need to add:
 CONFIG_KSU_DEBUG=y
 ```
 
-Then refer to the [ReSukiSU official website](https://resukisu.github.io/guide/manual-integrate.html) for modifications.
+Then refer to the [BakaSU official website](https://bakasu.org/guide/manual-integrate) for modifications.
 
 :::
 
@@ -627,7 +627,7 @@ If you are using the SuSFS v2.0.0 patch for the 4.9 kernel, KPM is already integ
 
 :::warning
 
-The new version of ReSukiSU has removed KPM support. If you need to integrate KPM, please use an older version of ReSukiSU or SukiSU-Ultra.
+The new version of BakaSU has removed KPM support. If you need to integrate KPM, please use an older version of BakaSU or SukiSU-Ultra.
 
 :::
 

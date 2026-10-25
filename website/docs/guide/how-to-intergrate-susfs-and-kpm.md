@@ -154,23 +154,23 @@ diff -uNr a/security/selinux/hooks.c b/security/selinux/hooks.c
 目前
 SuSFS v2.0.0支持内核v4.14.xxx(EMUI 10+)和v4.9.xxx(EMUI9+)
 SuSFS v2.2.0仅支持内核v4.9.xxx(EMUI9+)。  
-兼容ReSukiSU和SukiSU-Ultra（其他KernelSU分支理论也支持，请自行测试）
+兼容BakaSU和SukiSU-Ultra（其他KernelSU分支理论也支持，请自行测试）
 
 若你使用的4.9内核的SuSFS2.0.0版本补丁，则已经自带集成了KPM，你无需再次打补丁，但是需要在defconfig文件加入`CONFIG_KPM=y`，然后修补内核以启用KPM
 :::
 
 :::warning
 
-ReSukiSU新版本已移除KPM支持，若你还要集成KPM，请使用ReSukiSU老版本+SuSFSv2.0.0版本补丁或SukiSU-Ultra
+BakaSU新版本已移除KPM支持，若你还要集成KPM，请使用BakaSU老版本+SuSFSv2.0.0版本补丁或SukiSU-Ultra
 
 :::
 
 ::: details 为4.9内核打补丁
 
-若要使用ReSukiSU，在内核源码目录执行：
+若要使用BakaSU，在内核源码目录执行：
 
 ```shell
-curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
+curl -LSs "https://raw.githubusercontent.com/Baka-SU/BakaSU/main/kernel/setup.sh" | bash
 ```
 
 若要使用SukiSU-Ultra，在内核源码目录执行：
@@ -193,10 +193,10 @@ patch -p1 < SuSFS_inline_hook_2.2.0.patch
 
 ::: details Legacy-为4.9内核打v2.0.0版本SuSFS补丁
 
-ReSukiSU需要使用老版本。在内核源码目录执行：
+BakaSU需要使用老版本。在内核源码目录执行：
 
 ```shell
-curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
+curl -LSs "https://raw.githubusercontent.com/Baka-SU/BakaSU/main/kernel/setup.sh" | bash
 cd KernelSU
 git reset --hard a13d71f
 ```
@@ -215,10 +215,10 @@ patch -p1 < SuSFS_KPM_inline_hook_2.0.0.patch
 
 ::: details 为4.14内核打补丁
 
-由于4.14内核只有v2.0.0的SuSFS，所以ReSukiSU也需要使用老版本。在内核源码目录执行：
+由于4.14内核只有v2.0.0的SuSFS，所以BakaSU也需要使用老版本。在内核源码目录执行：
 
 ```shell
-curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
+curl -LSs "https://raw.githubusercontent.com/Baka-SU/BakaSU/main/kernel/setup.sh" | bash
 cd KernelSU
 git reset --hard a13d71f
 ```
@@ -238,7 +238,7 @@ patch -p1 < SuSFS_KPM_inline_hook_2.0.0.patch
 随后在defconfig中加入：
 
 ```text
-# ReSukiSU - SuSFS
+# BakaSU - SuSFS
 CONFIG_KSU=y
 CONFIG_KSU_SUSFS=y
 CONFIG_KSU_SUSFS_SUS_PATH=y
@@ -262,10 +262,10 @@ CONFIG_KSU_SUSFS_SUS_MAP=y
 
 :::
 
-若要使用ReSukiSU，在内核源码目录执行：
+若要使用BakaSU，在内核源码目录执行：
 
 ```shell
-curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
+curl -LSs "https://raw.githubusercontent.com/Baka-SU/BakaSU/main/kernel/setup.sh" | bash
 cd KernelSU
 git reset --hard a13d71f
 ```
@@ -586,12 +586,12 @@ diff -ruN a/security/Makefile b/security/Makefile
 ```
 :::
 
-:::details 为ReSukiSU打补丁
+:::details 为BakaSU打补丁
 
 在你的设备defconfig配置文件最后加入以下几行：
 
 ```text
-# ReSukiSU
+# BakaSU
 CONFIG_KSU=y
 CONFIG_KSU_MANUAL_HOOK=y
 ```
@@ -602,7 +602,7 @@ CONFIG_KSU_MANUAL_HOOK=y
 CONFIG_KSU_DEBUG=y
 ```
 
-随后参考[ReSukiSU官网](https://resukisu.github.io/guide/manual-integrate.html)修改
+随后参考[BakaSU官网](https://bakasu.org/guide/manual-integrate)修改
 
 :::
 
@@ -623,7 +623,7 @@ KPM目前只能和v4.9.xxx(EMUI9+)兼容，因为后续给内核打补丁的操�
 
 :::warning
 
-ReSukiSU新版本已移除KPM支持，若你需要集成KPM，请使用ReSukiSU老版本或SukiSU-Ultra
+BakaSU新版本已移除KPM支持，若你需要集成KPM，请使用BakaSU老版本或SukiSU-Ultra
 
 :::
 

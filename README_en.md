@@ -2,7 +2,7 @@
 
 - KernelSU kernels for Huawei devices!
 
-- Currently supports KernelSU,RKSU,KernelSU-Next,SukiSU-Ultra and ReSukiSU.
+- Currently supports KernelSU,RKSU,KernelSU-Next,SukiSU-Ultra and BakaSU.
 
 - Thanks to all contributors — I'm standing on the shoulders of giants.
 
@@ -37,9 +37,9 @@ Open the [GitHub Actions page for this project](https://github.com/xixiaobei-bei
 
 Example:
 
-`MHA_EMUI9.0_ReSukiSU_DroidSpace_SuSFS_KPM_PM.img`
+`MHA_EMUI9.0_BakaSU_DroidSpace_SuSFS_KPM_PM.img`
 
-This indicates a ReSukiSU with DroidSpace kernel with SuSFS and KPM support for the MHA model running EMUI 9.0, with SELinux in permissive mode.
+This indicates a BakaSU with DroidSpace kernel with SuSFS and KPM support for the MHA model running EMUI 9.0, with SELinux in permissive mode.
 
 ## Important Notes
 
@@ -71,7 +71,7 @@ After the device reboots, install the corresponding manager to obtain Root acces
 |RKSU|v3.0.0-30-legacy|[GithubReleases](https://github.com/rsuntk/KernelSU/releases/download/v3.0.0-30-legacy/KernelSU_v3.0.0-30-legacy_32334-release.apk)
 |KernelSU-Next|Lastest|[GithubReleases](https://github.com/KernelSU-Next/KernelSU-Next/releases)|
 |SukiSU-Ultra|Lastest|[GithubReleases](https://github.com/SukiSU-Ultra/SukiSU-Ultra/releases/)|
-|ReSukiSU|Lastest|[GithubActions](https://github.com/ReSukiSU/ReSukiSU/actions/workflows/build-manager.yml)
+|BakaSU|Lastest|[GithubActions](https://github.com/Baka-SU/BakaSU/actions/workflows/build-manager.yml)
 
 > [!NOTE]
 >
@@ -82,7 +82,7 @@ After the device reboots, install the corresponding manager to obtain Root acces
 
 |Model Name|Model Code|Supported Systems|Support Status|More Links|
 |:---:|:---:|:---:|:---:|:---:|
-|Mate9 Series|MHA|HarmonyOS 2.0, EMUI 9.0|KernelSU, RKSU, KernelSU-Next, KernelSU-Next+DroidSpace(HarmonyOS2.0), SukiSU-Ultra, ReSukiSU|None|
+|Mate9 Series|MHA|HarmonyOS 2.0, EMUI 9.0|KernelSU, RKSU, KernelSU-Next, KernelSU-Next+DroidSpace(HarmonyOS2.0), SukiSU-Ultra, BakaSU|None|
 |Mate10 Series|ALP|EMUI 9.1, EMUI 9.0|RKSU|None|
 |Mate10 Pro Series|BLA|EMUI 9.1|KernelSU|[android_kernel_huawei_blanc](https://github.com/Coconutat/android_kernel_huawei_blanc)|
 |Mate20 Pro Series|LYA|EMUI 9.0|RKSU|None|
@@ -104,7 +104,7 @@ After the device reboots, install the corresponding manager to obtain Root acces
 |Nova 4e Series|MAR|EMUI 10.0|RKSU|None|
 |Nova 5i Series|GLK|EMUI 9.1|RKSU|None|
 |Nova 5 Series|SEA-AL00, SEA-TL00|EMUI 9.1|RKSU|None|
-|Nova 5 Pro Series|SEA-AL10, SEA-TL10, SEA-TL10HKA|EMUI 9.1|ReSukiSU|None|
+|Nova 5 Pro Series|SEA-AL10, SEA-TL10, SEA-TL10HKA|EMUI 9.1|BakaSU|None|
 |Nova 7 SE Series|CDY|HarmonyOS 2.0, HarmonyOS 3.0|RKSU|None|
 |Enjoy 9 Plus Series|JKM|EMUI 9.1, HarmonyOS 2.0|KernelSU|None|
 |Enjoy 9s Series|POT|EMUI 9.0|RKSU|None|
@@ -183,7 +183,7 @@ KernelSU modules:
 
 - [SukiSU-Ultra](https://github.com/SukiSU-Ultra/SukiSU-Ultra) — SukiSU-Ultra author
 
-- [ReSukiSU](https://github.com/ReSukiSU/ReSukiSU) — added support for SukiSU-Ultra on kernels below the 5.x version
+- [BakaSU](https://github.com/Baka-SU/BakaSU) — added support for SukiSU-Ultra on kernels below the 5.x version
 
 - [Coconutat](https://github.com/Coconutat)—Participate in partial project maintenance work
 

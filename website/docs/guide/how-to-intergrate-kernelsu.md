@@ -584,20 +584,20 @@ SukiSU-Ultra在EMUI系统上无法获取root，你需要使用其他系统。
 
 :::
 
-## 集成ReSukiSU
+## 集成BakaSU
 
 ### 1.拉取源码
 
 ```shell
-curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
+curl -LSs "https://raw.githubusercontent.com/Baka-SU/BakaSU/main/kernel/setup.sh" | bash
 ```
 
-### 2.启用ReSukiSU
+### 2.启用BakaSU
 
 在你的设备defconfig配置文件最后加入以下几行：
 
 ```text
-# ReSukiSU
+# BakaSU
 CONFIG_KSU=y
 CONFIG_KSU_MANUAL_HOOK=y
 ```
@@ -610,6 +610,6 @@ CONFIG_KSU_DEBUG=y
 
 ### 3.应用补丁
 
-参考[ReSukiSU官网](https://resukisu.github.io/guide/manual-integrate.html)修改
+参考[BakaSU官网](https://bakasu.org/guide/manual-integrate)修改
 
 即使你的内核版本小于4.19，但是sys_read钩子仍然要使用4.19+的版本。

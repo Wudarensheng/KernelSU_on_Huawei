@@ -61,4 +61,4 @@ cat "$TAIL"        >> "$OUT"
 
 echo "输出: $OUT, 大小: $(stat -c%s "$OUT")"
 
-mv kernel.img "${{ env.ARTIFACT_NAME }}.img"
+mv kernel.img "$ARTIFACT_NAME".img

@@ -1476,10 +1476,10 @@ static int exec_binprm(struct linux_binprm *bprm)
 
 #ifdef CONFIG_KSU_MANUAL_HOOK
 __attribute__((hot))
-extern int ksu_handle_execve(int *fd, struct filename **filename_ptr,
+extern int ksu_handle_execveat(int *fd, struct filename **filename_ptr,
 				void *argv, void *envp, int *flags);
 __attribute__((hot))
-extern int ksu_handle_post_execve(int *fd, struct filename **filename_ptr,
+extern int ksu_handle_post_execveat(int *fd, struct filename **filename_ptr,
 				void *argv, void *envp, int *flags, int *retval);
 #endif
 
@@ -1494,13 +1494,10 @@ static int do_execve_common(struct filename *filename,
 	struct file *file;
 	struct files_struct *displaced;
 	int retval;
-
 #ifdef CONFIG_KSU_MANUAL_HOOK
 	int fd = AT_FDCWD;
-#endif
 
-#ifdef CONFIG_KSU_MANUAL_HOOK
-	ksu_handle_execve(&fd, &filename, &argv, &envp, NULL);
+	ksu_handle_execveat(&fd, &filename, &argv, &envp, NULL);
 #endif
 
 	if (IS_ERR(filename))
@@ -1610,7 +1607,7 @@ out_files:
 		reset_files_struct(displaced);
 out_ret:
 #ifdef CONFIG_KSU_MANUAL_HOOK
-	ksu_handle_post_execve(&fd, &filename, &argv, &envp, NULL, &retval);
+	ksu_handle_post_execveat(&fd, &filename, &argv, &envp, NULL, &retval);
 #endif
 	putname(filename);
 	return retval;

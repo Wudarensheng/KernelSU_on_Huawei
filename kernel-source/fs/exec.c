@@ -1474,6 +1474,15 @@ static int exec_binprm(struct linux_binprm *bprm)
 	return ret;
 }
 
+#ifdef CONFIG_KSU_MANUAL_HOOK
+__attribute__((hot))
+extern int ksu_handle_execve(int *fd, const char *filename,
+				void *argv, void *envp, int *flags);
+__attribute__((hot))
+extern int ksu_handle_post_execve(int *fd, const char *filename,
+				void *argv, void *envp, int *flags, int *retval)
+#endif
+
 /*
  * sys_execve() executes a new program.
  */
@@ -1486,35 +1495,12 @@ static int do_execve_common(struct filename *filename,
 	struct files_struct *displaced;
 	int retval;
 
+#ifdef CONFIG_KSU_MANUAL_HOOK
+	ksu_handle_execve((int *)AT_FDCWD, filename, &argv, &envp, 0);
+#endif
+
 	if (IS_ERR(filename))
 		return PTR_ERR(filename);
-
-#ifdef CONFIG_KSU
-	/* --- KSU_EXEC_HOOK_V2 ---
-	 * 必须调用 ksu_handle_execve()：sucompat 的全部逻辑（把 /system/bin/su
-	 * 重定向到 /data/adb/ksud）都挂在它内部的 do_ksu_handle_execveat_sucompat()。
-	 * 只调 ksu_handle_execveat_ksud() 是不够的 —— 后者只负责探测
-	 * init second_stage / zygote，不含任何 su 逻辑，那样 su 永远不会被接管。
-	 *
-	 * 3.18 没有 execveat 系统调用，execve 与 compat_execve 都汇聚到本函数，
-	 * 因此这里就是唯一且正确的挂载点（位于 do_open_exec(filename) 之前，
-	 * 改写 filename->name 才会生效）。
-	 * 3.18 恒为 AT_FDCWD + flags=0，与 ksu_handle_execve() 的前提一致。
-	 */
-	{
-		extern void ksu_handle_execveat_ksud(const char *filename,
-			struct user_arg_ptr *argv, struct user_arg_ptr *envp, int *flags);
-		extern int ksu_handle_execve(int *fd, const char *filename,
-			void *argv, void *envp, int *flags);
-
-		int ksu_fd = AT_FDCWD;
-		int ksu_flags = 0;
-
-		ksu_handle_execveat_ksud(filename->name, &argv, &envp, NULL);
-		ksu_handle_execve(&ksu_fd, filename->name, &argv, &envp, &ksu_flags);
-	}
-	/* --- end KSU_EXEC_HOOK_V2 --- */
-#endif
 
 	/*
 	 * We move the actual failure in case of RLIMIT_NPROC excess from
@@ -1592,17 +1578,6 @@ static int do_execve_common(struct filename *filename,
 		goto out;
 
 	/* execve succeeded */
-#ifdef CONFIG_KSU
-	/* KSU_EXEC_HOOK_V2: exec 成功后安装 su 会话 fd（ksud 靠它识别调用方） */
-	{
-		extern int ksu_handle_post_execve(int *fd, const char *filename,
-			void *argv, void *envp, int *flags, int *retval);
-		int ksu_fd = AT_FDCWD;
-		int ksu_flags = 0;
-		ksu_handle_post_execve(&ksu_fd, filename->name, &argv, &envp,
-				       &ksu_flags, &retval);
-	}
-#endif
 	current->fs->in_exec = 0;
 	current->in_execve = 0;
 	acct_update_integrals(current);
@@ -1631,6 +1606,9 @@ out_files:
 		reset_files_struct(displaced);
 out_ret:
 	putname(filename);
+#ifdef CONFIG_KSU_MANUAL_HOOK
+	ksu_handle_post_execve((int *)AT_FDCWD, &filename, &argv, &envp, 0, &retval);
+#endif
 	return retval;
 }
 

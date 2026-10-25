@@ -447,8 +447,11 @@ jobs:
           BRANCH='${{ matrix.branch }}'
           if [ -f ".ksu-clone_skip" ]; then
             echo "✅ 发现 .ksu-clone_skip，跳过命令执行。"
+          elif [ -f "ksuhw_cloneksu.sh" ]; then
+            echo "✅ 发现 ksuhw_cloneksu.sh，执行命令……"
+            bash ./ksuhw_cloneksu.sh
           else
-            echo "🔧 未发现 .ksu-clone_skip，执行命令……"
+            echo "🔧 未发现 .ksu-clone_skip或ksuhw_cloneksu.sh，执行命令……"
               if [[ "$BRANCH" == *"KernelSU-Next"* ]]; then
                 echo "Branch contains KernelSU-Next: running KernelSU-Next setup"
                rm -rf KernelSU-Next

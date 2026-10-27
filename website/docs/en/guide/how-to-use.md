@@ -11,7 +11,7 @@ First, you should read the list of supported devices:
 |Model Name|Model Code|Supported Systems|Support Status|Requirements|
 |:---:|:---:|:---:|:---:|:---:|
 |Mate9 Series|MHA|HarmonyOS 2.0, EMUI 9.0|KernelSU, RKSU, KernelSU-Next+DroidSpace(HarmonyOS2.0), SukiSU-Ultra, BakaSU|None|
-|Mate10 Series|ALP|EMUI 9.1, EMUI 9.0|RKSU|None|
+|Mate10 Series|ALP|EMUI 9.1, EMUI 9.0|RKSU,SukiSU-Ultra(EMUI9.1,SukiSU-Ultra(EMUI9.1)|None|
 |Mate10 Pro Series|BLA|EMUI 9.1|KernelSU|None|
 |Mate20 Pro Series|LYA|EMUI 9.0|RKSU|None|
 |Mate RS PORSCHE DESIGN|NEO|EMUI 9.0|RKSU|None|
@@ -19,6 +19,7 @@ First, you should read the list of supported devices:
 |P10 Plus Series|VKY|EMUI 9.0, HarmonyOS 2.0|RKSU|None|
 |P20 Series|EML|EMUI 9.1|KernelSU|None|
 |P30 Series|ELE|EMUI 9.1|RKSU|None|
+|P40 Series|ELS|EMUI10.1|RKSU|None|
 |Honor 7X Series|BND|EMUI 9.1|RKSU|None|
 |Honor V9 Series|DUK|HarmonyOS 2.0|KernelSU|None|
 |Honor 9 Series|STF|EMUI 9.0|KernelSU|None|
@@ -34,6 +35,7 @@ First, you should read the list of supported devices:
 |Nova 5 Series|SEA-AL00, SEA-TL00|EMUI 9.1|RKSU|None|
 |Nova 5 Pro Series|SEA-AL10, SEA-TL10, SEA-TL10HKA|EMUI 9.1|BakaSU|None|
 |Nova 7 SE Series|CDY|HarmonyOS 2.0, HarmonyOS 3.0|RKSU|None|
+|Enjoy 8 Series|LDN|EMUI8.0|BakaSU|None|
 |Enjoy 9 Plus Series|JKM|EMUI 9.1, HarmonyOS 2.0|KernelSU|None|
 |Enjoy 9s Series|POT|EMUI 9.0|RKSU|None|
 |Enjoy 10 Plus Series|STK|EMUI 9.1|RKSU|None|

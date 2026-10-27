@@ -87,7 +87,7 @@ fastboot flash kernel <内核文件>
 |机型名称|机型代码|支持系统|支持情况|更多链接|
 |:---:|:---:|:---:|:---:|:---:|
 |Mate9 系列|MHA|HarmonyOS2.0、EMUI9.0|KernelSU、RKSU、KernelSU-Next、KernelSU-Next+DroidSpace(HarmonyOS2.0)、SukiSU-Ultra、BakaSU|无|
-|Mate10 系列|ALP|EMUI9.1、EMUI9.0|RKSU|无|
+|Mate10 系列|ALP|EMUI9.1、EMUI9.0|RKSU、SukiSU-Ultra(EMUI9.1)|无|
 |Mate10 Pro 系列|BLA|EMUI9.1|KernelSU|[android_kernel_huawei_blanc](https://github.com/Coconutat/android_kernel_huawei_blanc)|
 |Mate20 Pro 系列|LYA|EMUI9.0|RKSU|无|
 |MateRS 保时捷设计|NEO|EMUI9.0|RKSU|无|
@@ -95,6 +95,7 @@ fastboot flash kernel <内核文件>
 |P10 Plus 系列|VKY|EMUI9.0、HarmonyOS2.0|RKSU|无|
 |P20 系列|EML|EMUI9.1|KernelSU|[KernelSU_on_Huawei_P20](https://github.com/Z841973620/KernelSU_on_Huawei_P20/tree/KernelSU_on_Huawei/kernel)|
 |P30 系列|ELE|EMUI9.1|RKSU|无|
+|P40 系列|ELS|EMUI10.1|RKSU|无|
 |荣耀7X 系列|BND|EMUI9.1|RKSU|无|
 |荣耀V9 系列|DUK|HarmonyOS2.0|KernelSU|无|
 |荣耀9 系列|STF|EMUI9.0|KernelSU|无|
@@ -110,6 +111,7 @@ fastboot flash kernel <内核文件>
 |Nova 5 系列|SEA-AL00、SEA-TL00|EMUI9.1|RKSU|无|
 |Nova 5 Pro 系列|SEA-AL10、SEA-TL10、SEA-TL10HKA|EMUI9.1|BakaSU|无|
 |Nova 7 SE 系列|CDY|HarmonyOS2.0、HarmonyOS3.0|RKSU|无|
+|畅享8 系列|LDN|EMUI8.0|BakaSU|[kernel_huawei_enjoy8_msm8937](https://github.com/QiTianCatKiss/kernel_huawei_enjoy8_msm8937)|
 |畅享9 Plus 系列|JKM|EMUI9.1、HarmonyOS2.0|KernelSU|无|
 |畅享9s 系列|POT|EMUI9.0|RKSU|无|
 |畅享10 Plus 系列|STK|EMUI9.1|RKSU|无|
@@ -202,3 +204,5 @@ KernelSU模块有关：
 - [zknsmsw](https://github.com/zknsmsw)——提供华为Mate20Pro的RKSU支持
 
 - [misaka1145](https://github.com/zfgysyuef)——提供SuSFS v2.2.0支持和修复无法获取Root的思路
+
+- [QiTianCatKiss](https://github.com/QiTianCatKiss) / [kernel_huawei_enjoy8_msm8937](https://github.com/QiTianCatKiss/kernel_huawei_enjoy8_msm8937)——提供华为畅享8的BakaSU支持

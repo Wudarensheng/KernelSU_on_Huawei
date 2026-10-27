@@ -83,7 +83,7 @@ After the device reboots, install the corresponding manager to obtain Root acces
 |Model Name|Model Code|Supported Systems|Support Status|More Links|
 |:---:|:---:|:---:|:---:|:---:|
 |Mate9 Series|MHA|HarmonyOS 2.0, EMUI 9.0|KernelSU, RKSU, KernelSU-Next, KernelSU-Next+DroidSpace(HarmonyOS2.0), SukiSU-Ultra, BakaSU|None|
-|Mate10 Series|ALP|EMUI 9.1, EMUI 9.0|RKSU|None|
+|Mate10 Series|ALP|EMUI 9.1, EMUI 9.0|RKSU,SukiSU-Ultra(EMUI9.1)|None|
 |Mate10 Pro Series|BLA|EMUI 9.1|KernelSU|[android_kernel_huawei_blanc](https://github.com/Coconutat/android_kernel_huawei_blanc)|
 |Mate20 Pro Series|LYA|EMUI 9.0|RKSU|None|
 |Mate RS PORSCHE DESIGN|NEO|EMUI 9.0|RKSU|None|
@@ -91,6 +91,7 @@ After the device reboots, install the corresponding manager to obtain Root acces
 |P10 Plus Series|VKY|EMUI 9.0, HarmonyOS 2.0|RKSU|None|
 |P20 Series|EML|EMUI 9.1|KernelSU|[KernelSU_on_Huawei_P20](https://github.com/Z841973620/KernelSU_on_Huawei_P20/tree/KernelSU_on_Huawei/kernel)|
 |P30 Series|ELE|EMUI 9.1|RKSU|None|
+|P40 Series|ELS|EMUI10.1|RKSU|None|
 |Honor 7X Series|BND|EMUI 9.1|RKSU|None|
 |Honor V9 Series|DUK|HarmonyOS 2.0|KernelSU|None|
 |Honor 9 Series|STF|EMUI 9.0|KernelSU|None|
@@ -106,6 +107,7 @@ After the device reboots, install the corresponding manager to obtain Root acces
 |Nova 5 Series|SEA-AL00, SEA-TL00|EMUI 9.1|RKSU|None|
 |Nova 5 Pro Series|SEA-AL10, SEA-TL10, SEA-TL10HKA|EMUI 9.1|BakaSU|None|
 |Nova 7 SE Series|CDY|HarmonyOS 2.0, HarmonyOS 3.0|RKSU|None|
+|Enjoy 8 Series|LDN|EMUI8.0|BakaSU|[kernel_huawei_enjoy8_msm8937](https://github.com/QiTianCatKiss/kernel_huawei_enjoy8_msm8937)|
 |Enjoy 9 Plus Series|JKM|EMUI 9.1, HarmonyOS 2.0|KernelSU|None|
 |Enjoy 9s Series|POT|EMUI 9.0|RKSU|None|
 |Enjoy 10 Plus Series|STK|EMUI 9.1|RKSU|None|
@@ -200,3 +202,5 @@ KernelSU modules:
 - [zknsmsw](https://github.com/zknsmsw)——Added RKSU support for Huawei Mate 20 Pro.
 
 - [misaka1145](https://github.com/zfgysyuef)——Added SuSFS v2.2.0 support and fixed the problem of getting root.
+
+- [QiTianCatKiss](https://github.com/QiTianCatKiss) / [kernel_huawei_enjoy8_msm8937](https://github.com/QiTianCatKiss/kernel_huawei_enjoy8_msm8937)——Added BakaSU support for Huawei Enjoy 8.

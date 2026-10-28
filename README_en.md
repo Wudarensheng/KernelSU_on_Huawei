@@ -108,7 +108,7 @@ After the device reboots, install the corresponding manager to obtain Root acces
 |Nova 5 Pro Series|SEA-AL10, SEA-TL10, SEA-TL10HKA|EMUI 9.1|BakaSU|None|
 |Nova 7 SE Series|CDY|HarmonyOS 2.0, HarmonyOS 3.0|RKSU|None|
 |Enjoy 8 Series|LDN|EMUI8.0|BakaSU|[kernel_huawei_enjoy8_msm8937](https://github.com/QiTianCatKiss/kernel_huawei_enjoy8_msm8937)|
-|Enjoy 9 Plus Series|JKM|EMUI 9.1, HarmonyOS 2.0|KernelSU|None|
+|Enjoy 9 Plus Series|JKM|EMUI 9.1, HarmonyOS 2.0|KernelSU, SukiSU-Ultra|None|
 |Enjoy 9s Series|POT|EMUI 9.0|RKSU|None|
 |Enjoy 10 Plus Series|STK|EMUI 9.1|RKSU|None|
 |Enjoy 8 Plus Series|FLA|EMUI 9.1|RKSU|None|

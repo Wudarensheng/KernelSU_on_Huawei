@@ -36,7 +36,7 @@ Root 您的设备可能会使保修失效，如果操作不当可能会造成永
 |Nova 5 Pro 系列|SEA-AL10、SEA-TL10、SEA-TL10HKA|EMUI9.1|BakaSU|无|
 |Nova 7 SE 系列|CDY|HarmonyOS2.0、HarmonyOS3.0|RKSU|无|
 |畅享8 系列|LDN|EMUI8.0|BakaSU|无|
-|畅享9 Plus 系列|JKM|EMUI9.1、HarmonyOS2.0|KernelSU|无|
+|畅享9 Plus 系列|JKM|EMUI9.1、HarmonyOS2.0|KernelSU、SukiSU-Ultra|无|
 |畅享9s 系列|POT|EMUI9.0|RKSU|无|
 |畅享10 Plus 系列|STK|EMUI9.1|RKSU|无|
 |畅享8 Plus 系列|FLA|EMUI9.1|RKSU|无|

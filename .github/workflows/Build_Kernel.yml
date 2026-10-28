@@ -68,7 +68,9 @@ jobs:
           - VKY_EMUI9.0_RKSU
           - VKY_HarmonyOS2.0_RKSU
           - JKM_EMUI9.1_KernelSU
+          - JKM_EMUI9.1_SukiSU-Ultra
           - JKM_HarmonyOS2.0_KernelSU
+          - JKM_HarmonyOS2.0_SukiSU-Ultra
           - STF_EMUI9.0_KernelSU
           - STK_EMUI9.1_RKSU
           - SEA-AL00-TL00_EMUI9.1_RKSU
@@ -236,7 +238,15 @@ jobs:
             DEFCONFIG="merge_kirin710_defconfig"
             os_version="9"
             tool="gcc" ;;
+          JKM_EMUI9.1_SukiSU-Ultra)
+            DEFCONFIG="merge_kirin710_defconfig"
+            os_version="9"
+            tool="gcc" ;;
           JKM_HarmonyOS2.0_KernelSU)
+            DEFCONFIG="merge_kirin710_defconfig"
+            os_version="9"
+            tool="gcc" ;;
+          JKM_HarmonyOS2.0_SukiSU-Ultra)
             DEFCONFIG="merge_kirin710_defconfig"
             os_version="9"
             tool="gcc" ;;

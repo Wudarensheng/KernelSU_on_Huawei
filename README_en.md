@@ -13,6 +13,9 @@
 
 ## Download
 
+> [!NOTE]
+> This fork currently only builds SukiSU-Ultra kernels for **JKM (Enjoy 9 Plus series)**, with the kernel version string `4.9.148-Wudarensheng@Github`. For images of other devices, please use the upstream [xixiaobei-bei/KernelSU_on_Huawei](https://github.com/xixiaobei-bei/KernelSU_on_Huawei).
+
 ### Download via GitHub Releases
 
 You can download it from [this page](https://github.com/xixiaobei-bei/KernelSU_on_Huawei/releases).Select the latest Release, find the corresponding file, and click to download.

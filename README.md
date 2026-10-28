@@ -15,6 +15,9 @@
 
 ## 下载
 
+> [!NOTE]
+> 本仓库当前只构建 **JKM（畅享9 Plus 系列）** 的 SukiSU-Ultra 内核，内核版本串为 `4.9.148-Wudarensheng@Github`。其他机型的镜像请到上游 [xixiaobei-bei/KernelSU_on_Huawei](https://github.com/xixiaobei-bei/KernelSU_on_Huawei) 获取。
+
 ### 通过GithubReleases下载
 
 可以在[此页面](https://github.com/xixiaobei-bei/KernelSU_on_Huawei/releases)下载，选择最新Release找到对应文件点击下载即可

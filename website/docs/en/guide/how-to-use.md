@@ -46,7 +46,7 @@ First, you should read the list of supported devices:
 
 ### Download via Github Releases
 
-You can download it from [this page](https://github.com/xixiaobei-bei/KernelSU_on_Huawei/releases). Select the latest Release, find the corresponding file, and click download.
+You can download it from [this page](https://github.com/Wudarensheng/KernelSU_on_Huawei/releases). Select the latest Release, find the corresponding file, and click download.
 
 ### Download Development Version via Github Actions
 
@@ -62,7 +62,7 @@ Downloading via Github Actions requires logging into your Github account to disp
 
 :::
 
-Open the [Github Actions page for this project](https://github.com/xixiaobei-bei/KernelSU_on_Huawei/actions), select the Build Kernel section in the Actions list on the left, select the latest build task, and then locate and download the file corresponding to your device.
+Open the [Github Actions page for this project](https://github.com/Wudarensheng/KernelSU_on_Huawei/actions), select the Build Kernel section in the Actions list on the left, select the latest build task, and then locate and download the file corresponding to your device.
 
 The naming convention for image files is as follows:
 

@@ -20,7 +20,7 @@
 
 ### 通过GithubReleases下载
 
-可以在[此页面](https://github.com/xixiaobei-bei/KernelSU_on_Huawei/releases)下载，选择最新Release找到对应文件点击下载即可
+可以在[此页面](https://github.com/Wudarensheng/KernelSU_on_Huawei/releases)下载，选择最新Release找到对应文件点击下载即可
 
 ### 通过GithubAction下载开发版
 
@@ -34,7 +34,7 @@
 > 通过GithubAction下载需要登陆Github账号才可以显示下载按钮
 >
 
-打开[本项目GithubAction页面](https://github.com/xixiaobei-bei/KernelSU_on_Huawei/actions)，选择左侧Action列表的Build Kernel Release板块，选择最新编译任务，然后找到设备对应的文件下载
+打开[本项目GithubAction页面](https://github.com/Wudarensheng/KernelSU_on_Huawei/actions)，选择左侧Action列表的Build Kernel Release板块，选择最新编译任务，然后找到设备对应的文件下载
 
 ## 命名规则
 

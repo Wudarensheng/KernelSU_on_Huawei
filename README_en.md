@@ -18,7 +18,7 @@
 
 ### Download via GitHub Releases
 
-You can download it from [this page](https://github.com/xixiaobei-bei/KernelSU_on_Huawei/releases).Select the latest Release, find the corresponding file, and click to download.
+You can download it from [this page](https://github.com/Wudarensheng/KernelSU_on_Huawei/releases).Select the latest Release, find the corresponding file, and click to download.
 
 ### Download Development Versions via GitHub Actions
 
@@ -32,7 +32,7 @@ You can download it from [this page](https://github.com/xixiaobei-bei/KernelSU_o
 > Downloading via GitHub Actions requires logging into your GitHub account for the download button to appear.
 >
 
-Open the [GitHub Actions page for this project](https://github.com/xixiaobei-bei/KernelSU_on_Huawei/actions),select the "Build Kernel Release" section from the left Action list, choose the latest compilation task, and then download the file corresponding to your device.
+Open the [GitHub Actions page for this project](https://github.com/Wudarensheng/KernelSU_on_Huawei/actions),select the "Build Kernel Release" section from the left Action list, choose the latest compilation task, and then download the file corresponding to your device.
 
 ## Naming Convention
 

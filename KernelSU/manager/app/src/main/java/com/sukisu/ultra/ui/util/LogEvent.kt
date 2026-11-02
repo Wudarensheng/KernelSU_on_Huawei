@@ -5,7 +5,7 @@ import android.os.Build
 import android.system.Os
 import com.topjohnwu.superuser.ShellUtils
 import com.sukisu.ultra.Natives
-import com.sukisu.ultra.ui.screen.home.getManagerVersion
+import com.sukisu.ultra.ui.screen.getManagerVersion
 import java.io.File
 import java.io.FileWriter
 import java.io.PrintWriter
@@ -17,7 +17,6 @@ fun getBugreportFile(context: Context): File {
     val bugreportDir = File(context.cacheDir, "bugreport")
     bugreportDir.mkdirs()
 
-    val processFile = File(bugreportDir, "process.txt")
     val dmesgFile = File(bugreportDir, "dmesg.txt")
     val logcatFile = File(bugreportDir, "logcat.txt")
     val tombstonesFile = File(bugreportDir, "tombstones.tar.gz")
@@ -38,14 +37,11 @@ fun getBugreportFile(context: Context): File {
     val procModules = File(bugreportDir, "proc_modules.txt")
     val bootConfig = File(bugreportDir, "boot_config.txt")
     val kernelConfig = File(bugreportDir, "defconfig.gz")
-    val kallsyms = File(bugreportDir, "kallsyms.txt")
 
     val shell = getRootShell(true)
 
-    // busybox ps has very few features for embed devices
-    shell.newJob().add("toybox ps -T -A -w -o PID,TID,UID,COMM,CMDLINE,CMD,LABEL,STAT,WCHAN > ${processFile.absolutePath}").exec()
-    shell.newJob().add("dmesg -r > ${dmesgFile.absolutePath}").exec()
-    shell.newJob().add("logcat -b all -v uid -d > ${logcatFile.absolutePath}").exec()
+    shell.newJob().add("dmesg > ${dmesgFile.absolutePath}").exec()
+    shell.newJob().add("logcat -d > ${logcatFile.absolutePath}").exec()
     shell.newJob().add("tar -czf ${tombstonesFile.absolutePath} -C /data/tombstones .").exec()
     shell.newJob().add("tar -czf ${dropboxFile.absolutePath} -C /data/system/dropbox .").exec()
     shell.newJob().add("tar -czf ${pstoreFile.absolutePath} -C /sys/fs/pstore .").exec()
@@ -64,9 +60,6 @@ fun getBugreportFile(context: Context): File {
     shell.newJob().add("cp /proc/modules ${procModules.absolutePath}").exec()
     shell.newJob().add("cp /proc/bootconfig ${bootConfig.absolutePath}").exec()
     shell.newJob().add("cp /proc/config.gz ${kernelConfig.absolutePath}").exec()
-    shell.newJob()
-        .add($$"ORIG=$(cat /proc/sys/kernel/kptr_restrict); echo 1 > /proc/sys/kernel/kptr_restrict; cat /proc/kallsyms > $${kallsyms.absolutePath}; echo $ORIG > /proc/sys/kernel/kptr_restrict")
-        .exec()
 
     val selinux = ShellUtils.fastCmd(shell, "getenforce")
 
@@ -107,7 +100,7 @@ fun getBugreportFile(context: Context): File {
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH_mm")
     val current = LocalDateTime.now().format(formatter)
 
-    val targetFile = File(context.cacheDir, "SukiSU_bugreport_${current}.tar.gz")
+    val targetFile = File(context.cacheDir, "KernelSU_bugreport_${current}.tar.gz")
 
     shell.newJob().add("tar czf ${targetFile.absolutePath} -C ${bugreportDir.absolutePath} .").exec()
     shell.newJob().add("rm -rf ${bugreportDir.absolutePath}").exec()

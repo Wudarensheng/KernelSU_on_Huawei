@@ -2,10 +2,9 @@
 package com.sukisu.zako;
 
 import android.content.pm.PackageInfo;
-import rikka.parcelablelist.ParcelableListSlice;
+import java.util.List;
 
 interface IKsuInterface {
-    ParcelableListSlice<PackageInfo> getPackages(int flags);
-
-    int[] getUserIds();
+    int getPackageCount();
+    List<PackageInfo> getPackages(int start, int maxCount);
 }

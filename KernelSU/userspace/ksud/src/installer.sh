@@ -7,9 +7,6 @@
 
 umask 022
 
-# customize.sh may set MODULE_HOT_INSTALL_REQUEST=true to skip the reboot
-export KSU_HAS_HOT_INSTALL=true
-
 ui_print() {
   if $BOOTMODE; then
     echo "$1"
@@ -88,7 +85,7 @@ setup_flashable() {
   $BOOTMODE && return
   if [ -z $OUTFD ] || readlink /proc/$$/fd/$OUTFD | grep -q /tmp; then
     # We will have to manually find out OUTFD
-    for FD in `ls /proc/$$/fd`; do
+    for FD in /proc/$$/fd/*; do
       if readlink /proc/$$/fd/$FD | grep -q pipe; then
         if ps | grep -v grep | grep -qE " 3 $FD |status_fd=$FD"; then
           OUTFD=$FD
@@ -239,10 +236,6 @@ api_level_arch_detect() {
     ARCH=x64
     ABI32=x86
     IS64BIT=true
-  elif [ "$ABI" = "riscv64" ]; then
-    ARCH=riscv64
-    ABI32=
-    IS64BIT=true
   else
     ARCH=arm
     ABI=armeabi-v7a
@@ -320,6 +313,14 @@ mark_remove() {
   chmod 644 $1
 }
 
+mark_replace() {
+  # REPLACE must be directory!!!
+  # https://docs.kernel.org/filesystems/overlayfs.html#whiteouts-and-opaque-directories
+  mkdir -p $1 2>/dev/null
+  setfattr -n trusted.overlay.opaque -v y $1
+  chmod 644 $1
+}
+
 request_size_check() {
   reqSizeM=`du -ms "$1" | cut -f1`
 }
@@ -337,19 +338,16 @@ is_legacy_script() {
 }
 
 handle_partition() {
-    # if /system/vendor is a symlink, we need to move it out of $MODPATH/system
-    # if /system/vendor is a normal directory, no special handling is needed.
-    if [ ! -e $MODPATH/system/$1 ]; then
+    PARTITION="$1"
+    REQUIRE_SYMLINK="$2"
+    if [ ! -e "$MODPATH/system/$PARTITION" ]; then
         # no partition found
         return;
     fi
 
-    # we move the folder to / only if it is a native folder that is not a symlink
-    if [ -d "/$1" ] && [ ! -L "/$1" ]; then
-        ui_print "- Handle partition /$1"
-        # we create a symlink if module want to access $MODPATH/system/$1
-        # but it doesn't always work(ie. write it in post-fs-data.sh would fail because it is readonly)
-        mv -f $MODPATH/system/$1 $MODPATH/$1 && ln -sf ../$1 $MODPATH/system/$1
+    if [ "$REQUIRE_SYMLINK" = "false" ] || [ -L "/system/$PARTITION" ] && [ "$(readlink -f "/system/$PARTITION")" = "/$PARTITION" ]; then
+        ui_print "- Handle partition /$PARTITION"
+        ln -sf "./system/$PARTITION" "$MODPATH/$PARTITION"
     fi
 }
 
@@ -430,35 +428,28 @@ install_module() {
     [ -f $MODPATH/customize.sh ] && . $MODPATH/customize.sh
   fi
 
+  handle_partition vendor true
+  handle_partition system_ext true
+  handle_partition product true
+  handle_partition odm false
+
   # Handle replace folders
   for TARGET in $REPLACE; do
     ui_print "- Replace target: $TARGET"
-    mark_replace $MODPATH$TARGET
+    mark_replace "$MODPATH$TARGET"
   done
 
   # Handle remove files
   for TARGET in $REMOVE; do
     ui_print "- Remove target: $TARGET"
-    mark_remove $MODPATH$TARGET
+    mark_remove "$MODPATH$TARGET"
   done
-
-  handle_partition vendor
-  handle_partition system_ext
-  handle_partition product
-  handle_partition odm
 
   if $BOOTMODE; then
     mktouch $NVBASE/modules/$MODID/update
     rm -rf $NVBASE/modules/$MODID/remove 2>/dev/null
     rm -rf $NVBASE/modules/$MODID/disable 2>/dev/null
     cp -af $MODPATH/module.prop $NVBASE/modules/$MODID/module.prop
-
-    # Tell ksud to apply the module right away
-    if [ "$MODULE_HOT_INSTALL_REQUEST" = "true" ]; then
-      echo "$MODULE_HOT_RUN_SCRIPT" > $MODPATH/.ksu_hot_install
-    else
-      rm -f $MODPATH/.ksu_hot_install
-    fi
   fi
 
   # Remove stuff that doesn't belong to modules and clean up any empty directories

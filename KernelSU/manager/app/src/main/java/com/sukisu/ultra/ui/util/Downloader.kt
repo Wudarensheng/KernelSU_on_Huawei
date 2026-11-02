@@ -1,111 +1,319 @@
 package com.sukisu.ultra.ui.util
 
+import android.annotation.SuppressLint
+import android.app.DownloadManager
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.net.Uri
 import android.os.Build
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.withContext
-import com.sukisu.ultra.data.registry.ExpectedFile
-import com.sukisu.ultra.ksuApp
+import android.os.Environment
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import com.sukisu.ultra.ui.util.module.LatestVersionInfo
-import okhttp3.Request
+import java.io.File
+import java.util.concurrent.TimeUnit
+
+private const val TAG = "DownloadUtil"
+private val CUSTOM_USER_AGENT = "SukiSU-Ultra/2.0 (Linux; Android ${Build.VERSION.RELEASE}; ${Build.MODEL})"
+private const val MAX_RETRY_COUNT = 3
+private const val RETRY_DELAY_MS = 3000L
 
 /**
  * @author weishu
  * @date 2023/6/22.
  */
-suspend fun download(
+@SuppressLint("Range")
+fun download(
+    context: Context,
     url: String,
     fileName: String,
+    description: String,
     onDownloaded: (Uri) -> Unit = {},
     onDownloading: () -> Unit = {},
-    onProgress: (Int) -> Unit = {},
-    expected: ExpectedFile? = null,
-    onFailed: (DownloadManager.DownloadState) -> Unit = {},
+    onError: (String) -> Unit = {}
 ) {
-    onDownloading()
+    Log.d(TAG, "Start Download: $url")
+    val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
 
-    val downloadId = DownloadManager.enqueue(
-        context = ksuApp,
-        url = url,
-        fileName = fileName,
-        onCompleted = onDownloaded,
-        expected = expected,
+    val query = DownloadManager.Query()
+    query.setFilterByStatus(DownloadManager.STATUS_RUNNING or DownloadManager.STATUS_PAUSED or DownloadManager.STATUS_PENDING)
+    downloadManager.query(query).use { cursor ->
+        while (cursor.moveToNext()) {
+            val uri = cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_URI))
+            val localUri = cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI))
+            val status = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS))
+            val columnTitle = cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_TITLE))
+            if (url == uri || fileName == columnTitle) {
+                if (status == DownloadManager.STATUS_RUNNING || status == DownloadManager.STATUS_PENDING) {
+                    onDownloading()
+                    return
+                } else if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                    onDownloaded(localUri.toUri())
+                    return
+                }
+            }
+        }
+    }
+    val downloadFile = File(
+        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+        fileName
     )
+    if (downloadFile.exists()) {
+        downloadFile.delete()
+    }
 
-    val finalState = DownloadManager.downloads
-        .onEach { map -> map[downloadId]?.let { onProgress(it.progress) } }
-        .first { map ->
-            val status = map[downloadId]?.status
-            status == DownloadManager.Status.COMPLETED ||
-                status == DownloadManager.Status.FAILED
-        }[downloadId]
-    if (finalState?.status == DownloadManager.Status.FAILED) {
-        withContext(Dispatchers.Main) { onFailed(finalState) }
+    val request = DownloadManager.Request(url.toUri())
+        .setDestinationInExternalPublicDir(
+            Environment.DIRECTORY_DOWNLOADS,
+            fileName
+        )
+        .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+        .setMimeType("application/zip")
+        .setTitle(fileName)
+        .setDescription(description)
+        .addRequestHeader("User-Agent", CUSTOM_USER_AGENT)
+        .setAllowedOverMetered(true)
+        .setAllowedOverRoaming(true)
+        .setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI or DownloadManager.Request.NETWORK_MOBILE)
+
+    try {
+        val downloadId = downloadManager.enqueue(request)
+        Log.d(TAG, "Successful launch of the download，ID: $downloadId")
+        monitorDownload(context, downloadManager, downloadId, url, fileName, description, onDownloaded, onDownloading, onError)
+    } catch (e: Exception) {
+        Log.e(TAG, "Download startup failure", e)
+        onError("Download startup failure: ${e.message}")
     }
 }
 
-internal suspend fun isDownloadAvailable(uri: Uri): Boolean = withContext(Dispatchers.IO) {
-    runCatching {
-        ksuApp.contentResolver.openFileDescriptor(uri, "r").use { it != null }
-    }.getOrDefault(false)
-}
+private fun monitorDownload(
+    context: Context,
+    downloadManager: DownloadManager,
+    downloadId: Long,
+    url: String,
+    fileName: String,
+    description: String,
+    onDownloaded: (Uri) -> Unit,
+    onDownloading: () -> Unit,
+    onError: (String) -> Unit,
+    retryCount: Int = 0
+) {
+    val handler = Handler(Looper.getMainLooper())
+    val query = DownloadManager.Query().setFilterById(downloadId)
 
+    var lastProgress = -1
+    var stuckCounter = 0
 
-fun checkNewVersion(): LatestVersionInfo = checkReleaseVersion("latest", isCi = false)
+    val runnable = object : Runnable {
+        override fun run() {
+            downloadManager.query(query).use { cursor ->
+                if (cursor != null && cursor.moveToFirst()) {
+                    @SuppressLint("Range")
+                    val status = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS))
 
-fun checkNewCiVersion(): LatestVersionInfo = checkReleaseVersion("tags/manager-ci", isCi = true)
+                    when (status) {
+                        DownloadManager.STATUS_SUCCESSFUL -> {
+                            @SuppressLint("Range")
+                            val localUri = cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI))
+                            Log.d(TAG, "Download Successfully: $localUri")
+                            onDownloaded(localUri.toUri())
+                            return
+                        }
+                        DownloadManager.STATUS_FAILED -> {
+                            @SuppressLint("Range")
+                            val reason = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_REASON))
+                            Log.d(TAG, "Download failed with reason code: $reason")
 
-private fun checkReleaseVersion(endpoint: String, isCi: Boolean): LatestVersionInfo {
-    if (!isNetworkAvailable(ksuApp)) return LatestVersionInfo()
-    val url = "https://api.github.com/repos/SukiSU-Ultra/SukiSU-Ultra/releases/$endpoint"
-    return runCatching {
-        ksuApp.okhttpClient.newCall(Request.Builder().url(url).build()).execute().use { response ->
-            if (!response.isSuccessful) {
-                android.util.Log.w("UpdateCheck", "$endpoint: HTTP ${response.code}")
-                return LatestVersionInfo()
-            }
-            val json = org.json.JSONObject(response.body.string())
-            val assets = json.getJSONArray("assets")
-            val changelog = json.optString("body")
-            if (isCi) {
-                val versionCode = Regex("""\((\d+)\)""").find(json.optString("name"))
-                    ?.groupValues?.get(1)?.toLongOrNull() ?: return LatestVersionInfo()
-                val abi = Build.SUPPORTED_ABIS.firstOrNull() ?: return LatestVersionInfo()
-                val apkPattern = Regex(
-                    """^SukiSU_.+_${versionCode}-${Regex.escape(abi)}-release\.apk$"""
-                )
-                val apk = (0 until assets.length()).asSequence()
-                    .mapNotNull { assets.optJSONObject(it) }
-                    .firstOrNull { apkPattern.matches(it.optString("name")) }
-                    ?: run {
-                        android.util.Log.w("UpdateCheck", "CI: no APK for version=$versionCode, abi=$abi")
-                        return LatestVersionInfo()
+                            if (retryCount < MAX_RETRY_COUNT) {
+                                Log.d(TAG, "Attempts to re download, number of retries: ${retryCount + 1}")
+                                handler.postDelayed({
+                                    downloadManager.remove(downloadId)
+                                    download(context, url, fileName, description, onDownloaded, onDownloading, onError)
+                                }, RETRY_DELAY_MS)
+                            } else {
+                                onError("Download failed, please check network connection or storage space")
+                            }
+                            return
+                        }
+                        DownloadManager.STATUS_RUNNING, DownloadManager.STATUS_PENDING, DownloadManager.STATUS_PAUSED -> {
+                            @SuppressLint("Range")
+                            val totalBytes = cursor.getLong(cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
+                            @SuppressLint("Range")
+                            val downloadedBytes = cursor.getLong(cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
+
+                            if (totalBytes > 0) {
+                                val progress = (downloadedBytes * 100 / totalBytes).toInt()
+                                if (progress == lastProgress) {
+                                    stuckCounter++
+                                    if (stuckCounter > 30) {
+                                        if (retryCount < MAX_RETRY_COUNT) {
+                                            Log.d(TAG, "Download stalled and restarted")
+                                            downloadManager.remove(downloadId)
+                                            download(context, url, fileName, description, onDownloaded, onDownloading, onError)
+                                            return
+                                        }
+                                    }
+                                } else {
+                                    lastProgress = progress
+                                    stuckCounter = 0
+                                    Log.d(TAG, "Download progress: $progress% ($downloadedBytes/$totalBytes)")
+                                }
+                            }
+                        }
                     }
-                val downloadUrl = apk.optString("browser_download_url")
-                    .takeIf { it.startsWith("https://github.com/SukiSU-Ultra/SukiSU-Ultra/releases/download/manager-ci/") }
-                    ?: return LatestVersionInfo()
-                return LatestVersionInfo(versionCode, downloadUrl, changelog)
-            }
-            val abi = Build.SUPPORTED_ABIS.firstOrNull() ?: return LatestVersionInfo()
-            val archPattern = Regex("""^SukiSU_v(.+?)_(\d+)-${Regex.escape(abi)}-release\.apk$""")
-            val universalPattern = Regex("""^SukiSU_v(.+?)_(\d+)-release\.apk$""")
-            val apkAssets = (0 until assets.length()).map { assets.getJSONObject(it) }
-            // Prefer the device-specific asset, falling back to an actual universal APK only.
-            for (pattern in listOf(archPattern, universalPattern)) {
-                for (asset in apkAssets) {
-                    val match = pattern.matchEntire(asset.getString("name")) ?: continue
-                    return LatestVersionInfo(
-                        match.groupValues[2].toLong(),
-                        asset.getString("browser_download_url"),
-                        changelog,
-                    )
                 }
             }
-            LatestVersionInfo()
+            handler.postDelayed(this, 1000)
         }
-    }.onFailure {
-        android.util.Log.w("UpdateCheck", "$endpoint: update check failed", it)
-    }.getOrDefault(LatestVersionInfo())
+    }
+    handler.post(runnable)
+
+    val receiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val id = intent?.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1) ?: -1
+            if (id == downloadId) {
+                handler.removeCallbacks(runnable)
+
+                val query = DownloadManager.Query().setFilterById(downloadId)
+                downloadManager.query(query).use { cursor ->
+                    if (cursor != null && cursor.moveToFirst()) {
+                        @SuppressLint("Range")
+                        val status = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS))
+
+                        if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                            @SuppressLint("Range")
+                            val localUri = cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI))
+                            onDownloaded(localUri.toUri())
+                        } else {
+                            if (retryCount < MAX_RETRY_COUNT) {
+                                download(context!!, url, fileName, description, onDownloaded, onDownloading, onError)
+                            } else {
+                                onError("Download failed, please try again later")
+                            }
+                        }
+                    }
+                }
+
+                context?.unregisterReceiver(this)
+            }
+        }
+    }
+
+    ContextCompat.registerReceiver(
+        context,
+        receiver,
+        IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
+        ContextCompat.RECEIVER_EXPORTED
+    )
+}
+
+fun checkNewVersion(): LatestVersionInfo {
+    val url = "https://api.github.com/repos/ShirkNeko/SukiSU-Ultra/releases/latest"
+    val defaultValue = LatestVersionInfo()
+    return runCatching {
+        val client = okhttp3.OkHttpClient.Builder()
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(15, TimeUnit.SECONDS)
+            .build()
+
+        val request = okhttp3.Request.Builder()
+            .url(url)
+            .header("User-Agent", CUSTOM_USER_AGENT)
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                Log.d("CheckUpdate", "Network request failed: ${response.message}")
+                return defaultValue
+            }
+            val body = response.body?.string()
+            if (body == null) {
+                Log.d("CheckUpdate", "Return data is null")
+                return defaultValue
+            }
+            Log.d("CheckUpdate", "Return data: $body")
+            val json = org.json.JSONObject(body)
+
+            // 直接从 tag_name 提取版本号（如 v1.1）
+            val tagName = json.optString("tag_name", "")
+            val versionName = tagName.removePrefix("v") // 移除前缀 "v"
+
+            // 从 body 字段获取更新日志（保留换行符）
+            val changelog = json.optString("body")
+                .replace("\\r\\n", "\n") // 转换换行符
+
+            val assets = json.getJSONArray("assets")
+            for (i in 0 until assets.length()) {
+                val asset = assets.getJSONObject(i)
+                val name = asset.getString("name")
+                if (!name.endsWith(".apk")) continue
+
+                val regex = Regex("SukiSU.*_(\\d+)-release")
+                val matchResult = regex.find(name)
+                if (matchResult == null) {
+                    Log.d("CheckUpdate", "No matches found: $name, skip over")
+                    continue
+                }
+                val versionCode = matchResult.groupValues[1].toInt()
+
+                val downloadUrl = asset.getString("browser_download_url")
+                return LatestVersionInfo(
+                    versionCode,
+                    downloadUrl,
+                    changelog,
+                    versionName
+                )
+            }
+            Log.d("CheckUpdate", "No valid APK resource found, return default value")
+            defaultValue
+        }
+    }.getOrDefault(defaultValue)
+}
+
+@Composable
+fun DownloadListener(context: Context, onDownloaded: (Uri) -> Unit) {
+    DisposableEffect(context) {
+        val receiver = object : BroadcastReceiver() {
+            @SuppressLint("Range")
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == DownloadManager.ACTION_DOWNLOAD_COMPLETE) {
+                    val id = intent.getLongExtra(
+                        DownloadManager.EXTRA_DOWNLOAD_ID, -1
+                    )
+                    val query = DownloadManager.Query().setFilterById(id)
+                    val downloadManager =
+                        context?.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                    val cursor = downloadManager.query(query)
+                    if (cursor.moveToFirst()) {
+                        val status = cursor.getInt(
+                            cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
+                        )
+                        if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                            val uri = cursor.getString(
+                                cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI)
+                            )
+                            onDownloaded(uri.toUri())
+                        }
+                    }
+                }
+            }
+        }
+        ContextCompat.registerReceiver(
+            context,
+            receiver,
+            IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
+            ContextCompat.RECEIVER_EXPORTED
+        )
+        onDispose {
+            context.unregisterReceiver(receiver)
+        }
+    }
 }

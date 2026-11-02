@@ -1,16 +1,16 @@
 # Installation
 
-The full installation guide is on the website: [sukisu.org - Installation](https://sukisu.org/guide/installation). This page only summarizes the options.
+You can go to [KernelSU Documentation - Installation](https://kernelsu.org/guide/installation.html) for a reference on how to install it, here are just additional instructions.
 
-## Installation by loading the Loadable Kernel Module (LKM) (recommended)
+## Installation by loading the Loadable Kernel Module(LKM)
 
-Install the Manager and let it patch your boot image with a prebuilt module for your device's KMI. See [LKM installation](https://sukisu.org/guide/installation#method-1-lkm-via-the-manager-recommended) for the steps and the list of prebuilt KMIs.
+See [KernelSU Documentation - LKM Installation](https://kernelsu.org/guide/installation.html#lkm-installation)
 
 Beginning with **Android™** (trademark meaning licensed Google Mobile Services) 12, devices shipping with kernel version 5.10 or higher must ship with the GKI kernel. You may be able to use LKM mode.
 
 ## Installation by installing the kernel
 
-See [Using pre-built GKI packages](https://sukisu.org/guide/installation#method-2-using-pre-built-gki-packages)
+See [KernelSU Documentation - GKI mode Installation](https://kernelsu.org/guide/installation.html#gki-mode-installation)
 
 We provide pre-built kernels for you to use:
 

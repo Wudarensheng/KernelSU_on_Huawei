@@ -1,131 +1,150 @@
 package com.sukisu.ultra.ui.viewmodel
 
 import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.sukisu.ultra.data.repository.KpmRepository
-import com.sukisu.ultra.data.repository.KpmRepositoryImpl
-import com.sukisu.ultra.ui.component.ConfigResult
-import com.sukisu.ultra.ui.screen.kpm.InputDialogState
-import com.sukisu.ultra.ui.screen.kpm.KpmUiState
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import com.sukisu.ultra.ui.util.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.io.File
+import kotlinx.coroutines.withContext
 
-class KpmViewModel(
-    private val repo: KpmRepository = KpmRepositoryImpl()
-) : ViewModel() {
-    private val _uiState = MutableStateFlow(KpmUiState())
-    val uiState: StateFlow<KpmUiState> = _uiState.asStateFlow()
-    private var refreshJob: Job? = null
-    private var operationJob: Job? = null
-    private var tempFile: File? = null
+/**
+ * @author ShirkNeko
+ * @date 2025/5/31.
+ */
+class KpmViewModel : ViewModel() {
+    var moduleList by mutableStateOf(emptyList<ModuleInfo>())
+        private set
 
-    // Reserve before launching so rapid clicks cannot start concurrent root operations.
-    fun runOperation(block: suspend () -> Unit) {
-        if (_uiState.value.isBusy) return
-        _uiState.update { it.copy(isBusy = true) }
-        operationJob = viewModelScope.launch {
+    var search by mutableStateOf("")
+        internal set
+
+    var isRefreshing by mutableStateOf(false)
+        private set
+
+    var currentModuleDetail by mutableStateOf("")
+        private set
+
+    fun fetchModuleList() {
+        viewModelScope.launch {
+            isRefreshing = true
             try {
-                refreshJob?.join()
-                block()
+                val moduleCount = getKpmModuleCount()
+                Log.d("KsuCli", "Module count: $moduleCount")
+
+                moduleList = getAllKpmModuleInfo()
+
+                // 获取 KPM 版本信息
+                val kpmVersion = getKpmVersion()
+                Log.d("KsuCli", "KPM Version: $kpmVersion")
+            } catch (e: Exception) {
+                Log.e("KsuCli", "获取模块列表失败", e)
             } finally {
-                _uiState.update { it.copy(isBusy = false) }
-                fetchModuleList()
+                isRefreshing = false
             }
         }
     }
 
-    fun prepareInstall(file: File, moduleName: String) {
-        clearTempFile()
-        tempFile = file
-        _uiState.update { it.copy(showInstallModeDialog = true, tempModuleName = moduleName) }
-    }
+    private fun getAllKpmModuleInfo(): List<ModuleInfo> {
+        val result = mutableListOf<ModuleInfo>()
+        try {
+            val str = listKpmModules()
+            val moduleNames = str
+                .split("\n")
+                .filter { it.isNotBlank() }
 
-    fun clearTempFile() {
-        tempFile?.delete()
-        tempFile = null
-    }
-
-    fun getTempFile(): File? = tempFile
-
-    fun setOperationResult(result: ConfigResult) {
-        _uiState.update { it.copy(operationResults = listOf(result)) }
-    }
-
-    fun fetchModuleList(silent: Boolean = false) {
-        if (refreshJob?.isActive == true || _uiState.value.isBusy) return
-        refreshJob = viewModelScope.launch {
-            _uiState.update { it.copy(isRefreshing = !silent || !it.hasLoaded) }
-            try {
-                repo.getModuleList()
-                    .onSuccess { modules ->
-                        _uiState.update {
-                            it.copy(moduleList = modules, hasLoaded = true, error = null)
-                        }
-                    }
-                    .onFailure { e ->
-                        if (e is CancellationException) throw e
-                        Log.e("KpmViewModel", "Failed to refresh modules", e)
-                        _uiState.update { it.copy(error = e) }
-                    }
-            } finally {
-                _uiState.update { it.copy(isRefreshing = false) }
+            for (name in moduleNames) {
+                try {
+                    val moduleInfo = parseModuleInfo(name)
+                    moduleInfo?.let { result.add(it) }
+                } catch (e: Exception) {
+                    Log.e("KsuCli", "Error processing module $name", e)
+                }
             }
+        } catch (e: Exception) {
+            Log.e("KsuCli", "Failed to get module list", e)
         }
-    }
-
-    fun dismissInstallDialog() {
-        _uiState.update { it.copy(showInstallModeDialog = false, tempModuleName = null) }
-    }
-
-    fun showInputDialog(moduleId: String) {
-        if (_uiState.value.isBusy) return
-        _uiState.update {
-            it.copy(inputDialogState = InputDialogState(
-                visible = true,
-                moduleId = moduleId,
-                args = it.moduleList.find { module -> module.id == moduleId }?.args.orEmpty()
-            ))
-        }
-    }
-
-    fun hideInputDialog() {
-        if (_uiState.value.isBusy) return
-        _uiState.update { it.copy(inputDialogState = InputDialogState()) }
-    }
-
-    fun updateInputArgs(args: String) {
-        _uiState.update { it.copy(inputDialogState = it.inputDialogState.copy(args = args)) }
-    }
-
-    suspend fun executeControl(): Int {
-        val input = _uiState.value.inputDialogState
-        val moduleId = input.moduleId ?: return -1
-        val result = repo.controlModule(moduleId, input.args).getOrElse { e ->
-            if (e is CancellationException) throw e
-            Log.e("KpmViewModel", "Failed to control module", e)
-            -1
-        }
-        // Preserve the user's parameters on failure so the command can be retried.
-        if (result == 0) _uiState.update { it.copy(inputDialogState = InputDialogState()) }
         return result
     }
 
-    fun updateSearchText(text: String) {
-        _uiState.update { it.copy(searchQuery = text) }
+    private fun parseModuleInfo(name: String): ModuleInfo? {
+        val info = getKpmModuleInfo(name)
+        if (info.isBlank()) return null
+
+        val properties = info.lineSequence()
+            .filter { line ->
+                val trimmed = line.trim()
+                trimmed.isNotEmpty() && !trimmed.startsWith("#")
+            }
+            .mapNotNull { line ->
+                line.split("=", limit = 2).let { parts ->
+                    when (parts.size) {
+                        2 -> parts[0].trim() to parts[1].trim()
+                        1 -> parts[0].trim() to ""
+                        else -> null
+                    }
+                }
+            }
+            .toMap()
+
+        return ModuleInfo(
+            id = name,
+            name = properties["name"] ?: name,
+            version = properties["version"] ?: "",
+            author = properties["author"] ?: "",
+            description = properties["description"] ?: "",
+            args = properties["args"] ?: "",
+            enabled = true,
+            hasAction = true
+        )
     }
 
-    override fun onCleared() {
-        // Shell execution can still be reading the staged file after cancellation.
-        val operation = operationJob
-        if (operation == null || operation.isCompleted) clearTempFile()
-        else operation.invokeOnCompletion { clearTempFile() }
+    fun loadModuleDetail(moduleId: String) {
+        viewModelScope.launch {
+            try {
+                currentModuleDetail = withContext(Dispatchers.IO) {
+                    getKpmModuleInfo(moduleId)
+                }
+                Log.d("KsuCli", "Module detail loaded: $currentModuleDetail")
+            } catch (e: Exception) {
+                Log.e("KsuCli", "Failed to load module detail", e)
+                currentModuleDetail = "Error: ${e.message}"
+            }
+        }
+    }
+
+    var showInputDialog by mutableStateOf(false)
+        private set
+
+    var selectedModuleId by mutableStateOf<String?>(null)
+        private set
+
+    var inputArgs by mutableStateOf("")
+        private set
+
+    fun showInputDialog(moduleId: String) {
+        selectedModuleId = moduleId
+        showInputDialog = true
+    }
+
+    fun hideInputDialog() {
+        showInputDialog = false
+        selectedModuleId = null
+        inputArgs = ""
+    }
+
+    fun updateInputArgs(args: String) {
+        inputArgs = args
+    }
+
+    fun executeControl(): Int {
+        val moduleId = selectedModuleId ?: return -1
+        val result = controlKpmModule(moduleId, inputArgs)
+        hideInputDialog()
+        return result
     }
 
     data class ModuleInfo(

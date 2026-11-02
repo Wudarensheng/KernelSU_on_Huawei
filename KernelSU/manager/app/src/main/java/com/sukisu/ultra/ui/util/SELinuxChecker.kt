@@ -1,32 +1,19 @@
 package com.sukisu.ultra.ui.util
 
-import com.topjohnwu.superuser.Shell
+import android.content.Context
+import com.sukisu.ultra.R
+import com.topjohnwu.superuser.io.SuFile
 
-/**
- * Returns the raw SELinux status string ("Enforcing", "Permissive", "Disabled", or "Unknown").
- * Safe to call from any thread (IO recommended).
- */
-fun getSELinuxStatusRaw(): String {
-    val shell = Shell.Builder.create().build("sh")
-
-    val stdoutList = ArrayList<String>()
-    val stderrList = ArrayList<String>()
-    val result = shell.use {
-        it.newJob().add("getenforce").to(stdoutList, stderrList).exec()
-    }
-    val stdout = stdoutList.joinToString("\n").trim()
-    val stderr = stderrList.joinToString("\n").trim()
-
-    if (result.isSuccess) {
-        return when (stdout) {
-            "Enforcing", "Permissive", "Disabled" -> stdout
-            else -> "Unknown"
+fun getSELinuxStatus(context: Context) = SuFile("/sys/fs/selinux/enforce").run {
+    when {
+        !exists() -> context.getString(R.string.selinux_status_disabled)
+        !isFile -> context.getString(R.string.selinux_status_unknown)
+        !canRead() -> context.getString(R.string.selinux_status_enforcing)
+        else -> when (runCatching { newInputStream() }.getOrNull()?.bufferedReader()
+            ?.use { it.runCatching { readLine() }.getOrNull()?.trim()?.toIntOrNull() }) {
+            1 -> context.getString(R.string.selinux_status_enforcing)
+            0 -> context.getString(R.string.selinux_status_permissive)
+            else -> context.getString(R.string.selinux_status_unknown)
         }
-    }
-
-    return if (stderr.endsWith("Permission denied")) {
-        "Enforcing"
-    } else {
-        "Unknown"
     }
 }

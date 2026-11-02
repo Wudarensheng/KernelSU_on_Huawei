@@ -5,77 +5,51 @@ on:
       target:
         required: true
         type: string
+      os:
+        required: false
+        type: string
+        default: ubuntu-latest
       pack_lkm:
         required: false
         type: boolean
-        default: false
-      pack_ksuinit:
+        default: true
+      use_cache:
         required: false
         type: boolean
-        default: false
+        default: true
+env:
+  CARGO_TERM_COLOR: always
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.os }}
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
     - name: Download artifacts
-      uses: actions/download-artifact@v8
+      uses: actions/download-artifact@v4
     
-    - name: Prepare LKM files
+    - name: Prepare LKM fies
       if: ${{ inputs.pack_lkm }}
       run: |
-        cp aarch64-android*-lkm/*_kernelsu.ko ./userspace/ksud/bin/aarch64/
-        cp x86_64-android*-lkm/*_kernelsu.ko ./userspace/ksud/bin/x86_64/
-    
-    - name: Prepare ksuinit
-      if: ${{ inputs.pack_ksuinit }}
-      run: |
-        mv ksuinit-aarch64/ksuinit ./userspace/ksud/bin/aarch64/
-        mv ksuinit-arm/ksuinit ./userspace/ksud/bin/arm/
-        mv ksuinit-x86_64/ksuinit ./userspace/ksud/bin/x86_64/
-        mv ksuinit-riscv64/ksuinit ./userspace/ksud/bin/riscv64/
+        cp android*-lkm/*_kernelsu.ko ./userspace/ksud/bin/aarch64/
         
     - name: Setup rustup
       run: |
-        if [ "${{ inputs.target }}" = riscv64-linux-android ]; then
-          rustup toolchain install nightly-2026-09-23 --profile minimal --component rust-src
-        else
-          rustup update stable
-          rustup target add ${{ inputs.target }}
-        fi
+        rustup update stable
+        rustup target add x86_64-apple-darwin
+        rustup target add aarch64-apple-darwin
 
-    - uses: Swatinem/rust-cache@v2
-      with:
-        workspaces: userspace/ksud
-        cache-targets: false
-
-    - uses: nttld/setup-ndk@v1
-      id: setup-ndk
-      with:
-        ndk-version: r29
+    - name: Install cross
+      run: |
+        RUSTFLAGS="" cargo install cross --git https://github.com/cross-rs/cross --rev 66845c1
 
     - name: Build ksud
-      env:
-        ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-      run: |
-        if [ "${{ github.event_name }}" = "pull_request" ]; then
-          export KSU_PACKAGE_NAME="com.sukisu.ultra.pr"
-        fi
-        if [ "${{ inputs.target }}" = riscv64-linux-android ]; then
-          source .github/scripts/setup-rust-build.sh riscv64-linux-android 35
-          BUILTINS="$($CLANG_PATH --print-resource-dir)/lib/linux/libclang_rt.builtins-riscv64-android.a"
-          test -f "$BUILTINS"
-          cargo +nightly-2026-09-23 build --config .github/riscv64-cargo.toml -Z build-std=std,panic_abort --target "$TRIPLE" --release --manifest-path ./userspace/ksud/Cargo.toml
-        else
-          source .github/scripts/setup-rust-build.sh ${{ inputs.target }} 26
-          cargo build --target "$TRIPLE" --release --manifest-path ./userspace/ksud/Cargo.toml
-        fi
+      run: CROSS_NO_WARNINGS=0 cross build --target ${{ inputs.target }} --release --manifest-path ./userspace/ksud/Cargo.toml
 
     - name: Upload ksud artifact
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@v4
       with:
         name: ksud-${{ inputs.target }}
-        path: target/${{ inputs.target }}/release/ksud
+        path: userspace/ksud/target/**/release/ksud*

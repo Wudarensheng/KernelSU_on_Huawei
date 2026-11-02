@@ -1,62 +1,67 @@
 #[cfg(target_arch = "aarch64")]
 use crate::kpm;
-use crate::module::{ScriptWait, handle_updated_modules, prune_modules};
 use crate::utils::is_safe_mode;
 use crate::{
-    assets, defs, ksucalls, metamodule, restorecon,
-    utils::{self},
+    assets, defs,
+    defs::{KSU_MOUNT_SOURCE, NO_MOUNT_PATH, NO_TMPFS_PATH},
+    ksucalls,
+    module::{handle_updated_modules, prune_modules},
+    restorecon, uid_scanner, utils,
+    utils::find_tmp_path,
 };
 use anyhow::{Context, Result};
-use log::{error, info, warn};
-use std::{path::Path, time::Instant};
+use log::{info, warn};
+use rustix::fs::{MountFlags, mount};
+use std::path::Path;
 
-pub fn on_post_fs_data() -> Result<()> {
-    if let Err(e) = ksucalls::ensure_uapi_version_matched() {
-        error!("{e:#}, skip on_post_fs_data");
-        return Ok(());
-    }
+#[cfg(target_os = "android")]
+pub fn mount_modules_systemlessly() -> Result<()> {
+    crate::magic_mount::magic_mount(&find_tmp_path())
+}
 
+#[cfg(not(target_os = "android"))]
+pub fn mount_modules_systemlessly() -> Result<()> {
+    Ok(())
+}
+
+pub fn on_post_data_fs() -> Result<()> {
     ksucalls::report_post_fs_data();
-
-    // Start before safe-mode/module early returns; expired leases survive reboot.
-    if let Err(e) = crate::temporary_root::start() {
-        error!("start temporary root watcher failed: {e:#}");
-    }
 
     utils::umask(0);
 
-    // Clear all temporary module configs early
-    if let Err(e) = crate::module_config::clear_all_temp_configs() {
-        warn!("clear temp configs failed: {e}");
-    }
-
-    let _ = catch_bootlog("logcat", &["logcat", "-b", "all"]);
-    let _ = catch_bootlog("dmesg", &["dmesg", "-w", "-r"]);
+    #[cfg(unix)]
+    let _ = catch_bootlog("logcat", vec!["logcat"]);
+    #[cfg(unix)]
+    let _ = catch_bootlog("dmesg", vec!["dmesg", "-w"]);
 
     if utils::has_magisk() {
         warn!("Magisk detected, skip post-fs-data!");
         return Ok(());
     }
 
-    let safe_mode = crate::utils::is_safe_mode();
-    let wait = ScriptWait::Until(Instant::now() + defs::BOOT_STAGE_TIMEOUT);
+    let safe_mode = utils::is_safe_mode();
 
     if safe_mode {
-        // we should still ensure module directory exists in safe mode
-        // because we may need to operate the module dir in safe mode
         warn!("safe mode, skip common post-fs-data.d scripts");
     } else {
         // Then exec common post-fs-data scripts
-        if let Err(e) = crate::module::exec_common_scripts("post-fs-data.d", wait) {
+        if let Err(e) = crate::module::exec_common_scripts("post-fs-data.d", true) {
             warn!("exec common post-fs-data scripts failed: {e}");
         }
     }
 
-    let module_dir = defs::MODULE_DIR;
-
     assets::ensure_binaries(true).with_context(|| "Failed to extract bin assets")?;
 
-    crate::hot_install::clean_trash();
+    // Start UID scanner daemon with highest priority
+    uid_scanner::start_uid_scanner_daemon()?;
+
+    if is_safe_mode() {
+        warn!("safe mode, skip load feature config");
+    } else if let Err(e) = crate::umount_manager::load_and_apply_config() {
+        warn!("Failed to load umount config: {e}");
+    }
+    // tell kernel that we've mount the module, so that it can do some optimization
+    ksucalls::report_module_mounted();
 
     // if we are in safe mode, we should disable all modules
     if safe_mode {
@@ -67,19 +72,12 @@ pub fn on_post_fs_data() -> Result<()> {
         return Ok(());
     }
 
-    if let Err(e) = handle_updated_modules() {
-        warn!("handle updated modules failed: {e}");
-    }
-
     if let Err(e) = prune_modules() {
         warn!("prune modules failed: {e}");
     }
 
-    // Refresh /metadata/watchdog/ksu/{modules.rc,preinit/} so the next boot's kernel hook sees the
-    // current module set. Acts as a safety net when state was changed outside
-    // of ksud's normal mutation commands.
-    if let Err(e) = crate::module::regenerate_preinit() {
-        warn!("regenerate preinit failed: {e:#}");
+    if let Err(e) = handle_updated_modules() {
+        warn!("handle updated modules failed: {e}");
     }
 
     if let Err(e) = restorecon::restorecon() {
@@ -95,8 +93,6 @@ pub fn on_post_fs_data() -> Result<()> {
         warn!("apply root profile sepolicy failed: {e}");
     }
 
-    crate::feature::init_forced_features();
-
     // load feature config
     if is_safe_mode() {
         warn!("safe mode, skip load feature config");
@@ -104,32 +100,39 @@ pub fn on_post_fs_data() -> Result<()> {
         warn!("init features failed: {e}");
     }
 
-    crate::extension::init_forced_extensions();
-    if is_safe_mode() {
-        warn!("safe mode, skip load extension config");
-    } else if let Err(e) = crate::extension::init_extensions() {
-        warn!("init extensions failed: {e}");
-    }
-
     #[cfg(target_arch = "aarch64")]
-    if let Err(e) = kpm::booted_load() {
+    if let Err(e) = kpm::start_kpm_watcher() {
         warn!("KPM: Failed to start KPM watcher: {e}");
     }
 
-    // execute metamodule post-fs-data script first (priority)
-    if let Err(e) = metamodule::exec_stage_script("post-fs-data", wait) {
-        warn!("exec metamodule post-fs-data script failed: {e}");
+    #[cfg(target_arch = "aarch64")]
+    if let Err(e) = kpm::load_kpm_modules() {
+        warn!("KPM: Failed to load KPM modules: {e}");
+    }
+
+    let tmpfs_path = find_tmp_path();
+    // for compatibility
+    let no_mount = Path::new(NO_TMPFS_PATH).exists() || Path::new(NO_MOUNT_PATH).exists();
+
+    // mount temp dir
+    if !no_mount {
+        if let Err(e) = mount(
+            KSU_MOUNT_SOURCE,
+            &tmpfs_path,
+            "tmpfs",
+            MountFlags::empty(),
+            "",
+        ) {
+            warn!("do temp dir mount failed: {e}");
+        }
+    } else {
+        info!("no tmpfs requested");
     }
 
     // exec modules post-fs-data scripts
-    if let Err(e) = crate::module::exec_stage_script("post-fs-data", wait) {
+    // TODO: Add timeout
+    if let Err(e) = crate::module::exec_stage_script("post-fs-data", true) {
         warn!("exec post-fs-data scripts failed: {e}");
-    }
-
-    // exec lua script on post-fs-data
-    #[cfg(all(target_os = "android", target_arch = "aarch64"))]
-    if let Err(e) = crate::module::exec_stage_lua("post-fs-data", true, "kernelsu") {
-        warn!("Failed to exec post-fs-data lua: {e}");
     }
 
     // load system.prop
@@ -137,24 +140,22 @@ pub fn on_post_fs_data() -> Result<()> {
         warn!("load system.prop failed: {e}");
     }
 
-    // execute metamodule mount script
-    if let Err(e) = metamodule::exec_mount_script(module_dir) {
-        warn!("execute metamodule mount failed: {e}");
+    // mount module systemlessly by magic mount
+    #[cfg(target_os = "android")]
+    if !no_mount {
+        if let Err(e) = crate::magic_mount::magic_mount(&tmpfs_path) {
+            warn!("do systemless mount failed: {e}");
+        }
+    } else {
+        info!("no mount requested");
     }
 
-    // Load umount config and apply to kernel
-    if let Err(e) = crate::umount::load_umount_config() {
-        warn!("load umount config failed: {e}");
-    }
-
-    run_stage("post-mount", wait);
-
-    std::env::set_current_dir("/").with_context(|| "failed to chdir to /")?;
+    run_stage("post-mount", true);
 
     Ok(())
 }
 
-pub fn run_stage(stage: &str, wait: ScriptWait) {
+fn run_stage(stage: &str, block: bool) {
     utils::umask(0);
 
     if utils::has_magisk() {
@@ -167,66 +168,32 @@ pub fn run_stage(stage: &str, wait: ScriptWait) {
         return;
     }
 
-    if let Err(e) = crate::module::exec_common_scripts(&format!("{stage}.d"), wait) {
+    if let Err(e) = crate::module::exec_common_scripts(&format!("{stage}.d"), block) {
         warn!("Failed to exec common {stage} scripts: {e}");
     }
-
-    // execute metamodule stage script first (priority)
-    if let Err(e) = metamodule::exec_stage_script(stage, wait) {
-        warn!("Failed to exec metamodule {stage} script: {e}");
-    }
-
-    // execute regular modules stage scripts
-    if let Err(e) = crate::module::exec_stage_script(stage, wait) {
+    if let Err(e) = crate::module::exec_stage_script(stage, block) {
         warn!("Failed to exec {stage} scripts: {e}");
     }
-
-    // run lua stage script
-    #[cfg(all(target_os = "android", target_arch = "aarch64"))]
-    if let Err(e) =
-        crate::module::exec_stage_lua(stage, !matches!(wait, ScriptWait::NoWait), "kernelsu")
-    {
-        warn!("Failed to exec {stage} lua: {e}");
-    }
 }
 
-pub fn on_services() {
-    if let Err(e) = ksucalls::ensure_uapi_version_matched() {
-        error!("{e:#}, skip on_services");
-        return;
-    }
-
-    match ksucalls::report_services() {
-        Ok(true) => {}
-        Ok(false) => {
-            info!("services already started, skipping");
-            return;
-        }
-        Err(e) => {
-            error!("Failed to report services: {e:#}");
-            return;
-        }
-    }
-
+pub fn on_services() -> Result<()> {
     info!("on_services triggered!");
-    run_stage("service", ScriptWait::NoWait);
+    run_stage("service", false);
+
+    Ok(())
 }
 
-pub fn on_boot_completed() {
-    if let Err(e) = ksucalls::ensure_uapi_version_matched() {
-        error!("{e:#}, skip on_boot_completed");
-        return;
-    }
-
+pub fn on_boot_completed() -> Result<()> {
     ksucalls::report_boot_complete();
     info!("on_boot_completed triggered!");
 
-    crate::preinit::on_boot_completed();
+    run_stage("boot-completed", false);
 
-    run_stage("boot-completed", ScriptWait::NoWait);
+    Ok(())
 }
 
-fn catch_bootlog(logname: &str, command: &[&str]) -> Result<()> {
+#[cfg(unix)]
+fn catch_bootlog(logname: &str, command: Vec<&str>) -> Result<()> {
     use std::os::unix::process::CommandExt;
     use std::process::Stdio;
 
@@ -241,8 +208,8 @@ fn catch_bootlog(logname: &str, command: &[&str]) -> Result<()> {
 
     let bootlog = std::fs::File::create(bootlog)?;
 
-    let mut args = vec!["-s", "9", defs::BOOTLOG_TIMEOUT];
-    args.extend_from_slice(command);
+    let mut args = vec!["-s", "9", "30s"];
+    args.extend_from_slice(&command);
     // timeout -s 9 30s logcat > boot.log
     let result = unsafe {
         std::process::Command::new("timeout")

@@ -4,9 +4,6 @@ import android.os.Parcelable
 import androidx.annotation.Keep
 import androidx.compose.runtime.Immutable
 import kotlinx.parcelize.Parcelize
-import kotlinx.serialization.Serializable
-import com.sukisu.ultra.Natives.Profile.RootProfileFlag
-import com.sukisu.ultra.ui.util.rootAvailable
 
 /**
  * @author weishu
@@ -20,22 +17,26 @@ object Natives {
     // 10977: change groups_count and groups to avoid overflow write
     // 11071: Fix the issue of failing to set a custom SELinux type.
     // 12143: breaking: new supercall impl
-    // 32310: new get_allow_list ioctl
-    // 32336: new set_sepolicy ioctl
-    // 32377: add set_init_pgrp ioctl
-    // 32513: add uapi version
-    const val MINIMAL_SUPPORTED_KERNEL = 32513
-
-    // Get full version
-    // The kernel returns null when the GET_FULL_VERSION supercall is unavailable.
-    external fun getFullVersion(): String?
-    const val MINIMAL_SUPPORTED_KERNEL_FULL = "v4.0.0"
+    const val MINIMAL_SUPPORTED_KERNEL = 12143
 
     // 12040: Support disable sucompat mode
-    const val KERNEL_SU_DOMAIN = "u:r:ksu:s0"
+    const val KERNEL_SU_DOMAIN = "u:r:su:s0"
+
+    const val MINIMAL_SUPPORTED_KERNEL_FULL = "v3.1.8"
+
+    const val MINIMAL_SUPPORTED_KPM = 12800
+
+    const val MINIMAL_SUPPORTED_DYNAMIC_MANAGER = 13215
+
+    const val MINIMAL_SUPPORTED_UID_SCANNER = 13347
+
+    const val MINIMAL_NEW_IOCTL_KERNEL = 13490
 
     const val ROOT_UID = 0
     const val ROOT_GID = 0
+
+    // 获取完整版本号
+    external fun getFullVersion(): String
 
     fun isVersionLessThan(v1Full: String, v2Full: String): Boolean {
         fun extractVersionParts(version: String): List<Int> {
@@ -55,11 +56,20 @@ object Natives {
         return false
     }
 
+    fun getSimpleVersionFull(): String = getFullVersion().let { version ->
+        Regex("""v\d+(\.\d+)*""").find(version)?.value ?: version
+    }
+
     init {
+        System.loadLibrary("zakosign")
         System.loadLibrary("kernelsu")
     }
 
     val version: Int
+        external get
+
+    // get the uid list of allowed su processes.
+    val allowList: IntArray
         external get
 
     val isSafeMode: Boolean
@@ -68,16 +78,7 @@ object Natives {
     val isLkmMode: Boolean
         external get
 
-    val isLkmBundled: Boolean
-        external get
-
-    val isLateLoadMode: Boolean
-        external get
-
     val isManager: Boolean
-        external get
-
-    val isPrBuild: Boolean
         external get
 
     external fun uidShouldUmount(uid: Int): Boolean
@@ -109,35 +110,73 @@ object Natives {
     external fun setKernelUmountEnabled(enabled: Boolean): Boolean
 
     /**
-     * SELinux hide can be disabled temporarily.
+     * Enhanced security can be enabled/disabled.
      *  0: disabled
      *  1: enabled
      *  negative : error
      */
-    external fun isSelinuxHideEnabled(): Boolean
-    external fun setSelinuxHideEnabled(enabled: Boolean): Int
+    external fun isEnhancedSecurityEnabled(): Boolean
+    external fun setEnhancedSecurityEnabled(enabled: Boolean): Boolean
 
-    /** AVC audit log SID spoofing. */
-    external fun isAvcSpoofEnabled(): Boolean
-    external fun setAvcSpoofEnabled(enabled: Boolean): Boolean
-
-    /**
-     * Mount hide can be disabled temporarily.
-     *  0: disabled
-     *  1: enabled
-     *  negative : error
-     */
-    external fun isMountHideEnabled(): Boolean
-    external fun setMountHideEnabled(enabled: Boolean): Int
-
-    /**
-     * Get the user name for the uid.
-     */
-    external fun getUserName(uid: Int): String?
-
-    external fun getSuperuserCount(): Int
-
+    external fun isKPMEnabled(): Boolean
     external fun getHookType(): String
+
+    /**
+     * Get SUSFS feature status from kernel
+     * @return SusfsFeatureStatus object containing all feature states, or null if failed
+     */
+
+    /**
+     * Set dynamic managerature configuration
+     * @param size APK signature size
+     * @param hash APK signature hash (64 character hex string)
+     * @return true if successful, false otherwise
+     */
+    external fun setDynamicManager(size: Int, hash: String): Boolean
+
+
+    /**
+     * Get current dynamic managerature configuration
+     * @return DynamicManagerConfig object containing current configuration, or null if not set
+     */
+    external fun getDynamicManager(): DynamicManagerConfig?
+
+    /**
+     * Clear dynamic managerature configuration
+     * @return true if successful, false otherwise
+     */
+    external fun clearDynamicManager(): Boolean
+
+    /**
+     * Get active managers list when dynamic manager is enabled
+     * @return ManagersList object containing active managers, or null if failed or not enabled
+     */
+    external fun getManagersList(): ManagersList?
+
+    // 模块签名验证
+    external fun verifyModuleSignature(modulePath: String): Boolean
+
+    /**
+     * Check if UID scanner is currently enabled
+     * @return true if UID scanner is enabled, false otherwise
+     */
+    external fun isUidScannerEnabled(): Boolean
+
+    /**
+     * Enable or disable UID scanner
+     * @param enabled true to enable, false to disable
+     * @return true if operation was successful, false otherwise
+     */
+    external fun setUidScannerEnabled(enabled: Boolean): Boolean
+
+    /**
+     * Clear UID scanner environment (force exit)
+     * This will forcefully stop all UID scanner operations and clear the environment
+     * @return true if operation was successful, false otherwise
+     */
+    external fun clearUidScannerEnvironment(): Boolean
+
+    external fun getUserName(uid: Int): String?
 
     private const val NON_ROOT_DEFAULT_PROFILE_KEY = "$"
     private const val NOBODY_UID = 9999
@@ -159,29 +198,45 @@ object Natives {
         }
     }
 
-    val kernelUAPIVersion: Int
-        external get
-
-    val managerUAPIVersion: Int
-        external get
-
-    /**
-     * Root through some other means, no SukiSU kernel. Kernel calls just return defaults here,
-     * so the pages can be opened and browsed.
-     */
-    fun isPreviewMode(): Boolean = !isManager && rootAvailable()
-
-    fun isFullFeatured(): Boolean {
-        val kernelFullVersion = getFullVersion()
-        return (kernelFullVersion != null && isVersionLessThan(kernelFullVersion, MINIMAL_SUPPORTED_KERNEL_FULL)) ||
-                isManager && kernelUAPIVersion == managerUAPIVersion && rootAvailable() ||
-                isPreviewMode()
+    fun requireNewKernel(): Boolean {
+        if (version != -1 && version < MINIMAL_SUPPORTED_KERNEL) return true
+        return isVersionLessThan(getFullVersion(), MINIMAL_SUPPORTED_KERNEL_FULL)
     }
 
-    @Keep
     @Immutable
     @Parcelize
-    @Serializable
+    @Keep
+    data class DynamicManagerConfig(
+        val size: Int = 0,
+        val hash: String = ""
+    ) : Parcelable {
+
+        fun isValid(): Boolean {
+            return size > 0 && hash.length == 64 && hash.all {
+                it in '0'..'9' || it in 'a'..'f' || it in 'A'..'F'
+            }
+        }
+    }
+
+    @Immutable
+    @Parcelize
+    @Keep
+    data class ManagersList(
+        val count: Int = 0,
+        val managers: List<ManagerInfo> = emptyList()
+    ) : Parcelable
+
+    @Immutable
+    @Parcelize
+    @Keep
+    data class ManagerInfo(
+        val uid: Int = 0,
+        val signatureIndex: Int = 0
+    ) : Parcelable
+
+    @Immutable
+    @Parcelize
+    @Keep
     data class Profile(
         // and there is a default profile for root and non-root
         val name: String,
@@ -205,17 +260,7 @@ object Natives {
         val nonRootUseDefault: Boolean = true,
         val umountModules: Boolean = true,
         var rules: String = "", // this field is save in ksud!!
-
-        val flags: Long = FLAG_KSU_NO_NEW_PRIVS,
     ) : Parcelable {
-        @Keep
-        enum class RootProfileFlag(val display: String, val desc: Int) {
-            NO_NEW_PRIVS(
-                "NO_NEW_PRIVS",
-                R.string.profile_flags_desc_no_new_privs
-            )
-        }
-
         enum class Namespace {
             INHERITED,
             GLOBAL,
@@ -224,15 +269,4 @@ object Natives {
 
         constructor() : this("")
     }
-
-    const val FLAG_KSU_NO_NEW_PRIVS = 1L
 }
-
-fun List<RootProfileFlag>.toRawFlags(): Long =
-    fold(0L) { acc, flag -> acc.or(1L.shl(flag.ordinal)) }
-
-fun List<RootProfileFlag>.toOrdinalList(): List<Int> =
-    map { it.ordinal }
-
-fun Long.toRootProfileFlags(): List<RootProfileFlag> =
-    RootProfileFlag.entries.filter { 1L.shl(it.ordinal).and(this) != 0L }.toList()

@@ -1,0 +1,151 @@
+# ============================================================================
+#  用华为官方完整内核源码重建两个 SukiSU-Ultra 分支（整体替换，force push）
+#
+#  为什么放 CI 做：
+#    * 本地解包 6 万个小文件只有 ~0.7 MB/s，两棵树要一个多小时
+#    * runner 是 SSD，几分钟搞定
+#    * 用 GITHUB_TOKEN + contents:write 就能推，不需要额外 PAT
+#
+#  为什么不是简单 git init 重推：以现有分支为父提交，官方源码里和现有分支
+#  相同的文件 blob SHA 一致，push 时只传真正变化的部分，不用重传 1.5 GB。
+#
+#  ⚠️ 会 force push 覆盖 JKM_EMUI9.1_SukiSU-Ultra / JKM_HarmonyOS2.0_SukiSU-Ultra
+#     回滚点（替换前的 SHA）：
+#       JKM_EMUI9.1_SukiSU-Ultra       f7fbf4ab6bb074ee104c2b733063b25cab5f4809
+#       JKM_HarmonyOS2.0_SukiSU-Ultra  86d2512cb352e7cd7c109fd0c80386c76891436e
+#     恢复：git push --force origin <sha>:refs/heads/<branch>
+# ============================================================================
+name: rebuild-source-branches
+
+on:
+  workflow_dispatch:
+  # workflow_dispatch 只对默认分支上的 workflow 生效，这里补 push 触发
+  push:
+    branches:
+      - "JKM_EMUI9.1_GSI*"
+    paths:
+      - ".github/workflows/rebuild-source.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - branch: JKM_EMUI9.1_SukiSU-Ultra
+            url: "https://download-c1.huawei.com/download/downloadCenter?downloadId=2BFA3929B6CB4E54DBD28392C1689F24&version=1F3CDC150297A5F41D13E88A6751A879&siteCode=worldwide"
+            tag: EMUI9.1
+          - branch: JKM_HarmonyOS2.0_SukiSU-Ultra
+            url: "https://download-c1.huawei.com/download/downloadCenter?downloadId=580626A3D392BC30902817060F58639F&version=387A751BA71EE68319D45B300C58B676&siteCode=worldwide"
+            tag: HarmonyOS2.0
+
+    steps:
+      - name: Checkout（只为了拿 remote 和 token）
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 下载华为官方内核源码 (${{ matrix.tag }})
+        run: |
+          set -e
+          curl -L --retry 3 --retry-delay 5 \
+            -A "Mozilla/5.0" \
+            -e "https://consumer.huawei.com/en/opensource/detail/" \
+            -o "src-${{ matrix.tag }}.tar.gz" "${{ matrix.url }}"
+          ls -l "src-${{ matrix.tag }}.tar.gz"
+          # 校验是 gzip 而不是错误页
+          head -c 2 "src-${{ matrix.tag }}.tar.gz" | od -An -tx1 | grep -q "1f 8b"
+
+      - name: 解出 kernel 树
+        run: |
+          set -e
+          mkdir -p "tree-${{ matrix.tag }}"
+          tar -xzf "src-${{ matrix.tag }}.tar.gz" \
+              -C "tree-${{ matrix.tag }}" \
+              --strip-components=2 Code_Opensource/kernel
+          cd "tree-${{ matrix.tag }}"
+          echo "== 版本 =="
+          grep -E "^(VERSION|PATCHLEVEL|SUBLEVEL|NAME) =" Makefile
+          du -sh .
+          test -f drivers/Makefile
+          # 官方源码里不该有 kernelsu，有的话先清掉再打补丁
+          if grep -q kernelsu drivers/Makefile; then
+            echo "!! 官方源码里已经引用了 kernelsu，先清掉"
+            sed -i '/kernelsu/d' drivers/Makefile
+            sed -i '/drivers\/kernelsu\/Kconfig/d' drivers/Kconfig
+          fi
+          test ! -e drivers/kernelsu
+
+      - name: 打 SukiSU Ultra 补丁
+        run: |
+          set -e
+          cd "tree-${{ matrix.tag }}"
+          curl -Ls --retry 3 "https://cdn.jsdelivr.net/gh/SukiSU-Ultra/SukiSU-Ultra@main/kernel/setup.sh" \
+            -o /tmp/sukisu-setup.sh
+          head -1 /tmp/sukisu-setup.sh | grep -q '^#!' || { echo "!! setup.sh 不是脚本"; exit 1; }
+          # 钉 4a0c01e（2026-04-01，提交信息 "移植并修复旧内核兼容性支持"）。
+          # 这是上游专门做的旧内核兼容版：
+          #   * selinux/rules.c 用 #if LINUX_VERSION_CODE >= 5.10 分支，
+          #     4.9 走全局 policydb 而不是 selinux_state
+          #   * app_profile.c 的 seccomp.filter_count 用 >= 6.7.0 || KSU_OPTIONAL_SECCOMP_FILTER_COUNT 守卫
+          #   * kernel_compat.h 里有 Huawei HISI 检测、ksu_filp_open_compat 等一整套
+          # 参考 xixiaobei-bei/KernelSU_on_Huawei 的 workflow：他们同样是
+          # setup.sh 之后 `cd KernelSU && git reset --hard 4a0c01e`。
+          sh /tmp/sukisu-setup.sh 4a0c01e
+          echo "== 补丁结果 =="
+          ls -l drivers/kernelsu
+          grep -n kernelsu drivers/Makefile
+          grep -n kernelsu drivers/Kconfig
+          echo "KernelSU 版本: $(cd KernelSU && git describe --tags --abbrev=0 2>/dev/null || git rev-parse --short HEAD)"
+          test -f KernelSU/kernel/Kconfig
+          grep -q "KSU" KernelSU/kernel/Kconfig
+          # 去掉嵌套 .git，否则会被当成子模块
+          rm -rf KernelSU/.git
+          echo "KernelSU 文件数: $(find KernelSU -type f | wc -l)"
+
+      - name: 以现有分支为父提交，整体替换
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          SRC="$PWD/tree-${{ matrix.tag }}"
+          BRANCH="${{ matrix.branch }}"
+          WORK="$RUNNER_TEMP/push-${{ matrix.tag }}"
+          REPO="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+
+          mkdir -p "$WORK"
+          cd "$WORK"
+          git init -q
+          git remote add origin "$REPO"
+          git fetch --depth=1 origin "$BRANCH"
+          BASE=$(git rev-parse FETCH_HEAD)
+          echo "base = $BASE"
+
+          # 不 checkout：直接把工作目录当新树，避免本地同时存在两棵 1.5 GB 的树
+          git update-ref "refs/heads/$BRANCH" "$BASE"
+          git symbolic-ref HEAD "refs/heads/$BRANCH"
+          cp -a "$SRC"/. .
+
+          git add -A
+          git -c user.name="Wudarensheng" \
+              -c user.email="Wudarensheng@users.noreply.github.com" \
+              commit -q -m "rebuild: 华为官方 ${{ matrix.tag }} 完整内核源码 + SukiSU Ultra" \
+            || { echo "没有变化（分支已经是这个内容），跳过推送"; exit 0; }
+          echo "== 变更统计 =="
+          git diff --shortstat "$BASE" HEAD
+          # 注意：不能直接 | head，SIGPIPE 会被 set -o pipefail 判成失败（exit 141），
+          # 那样 push 就永远执行不到。先落盘再截断。
+          git diff --name-status "$BASE" HEAD > /tmp/changed.txt || true
+          echo "变化最多的前 20 项："
+          head -20 /tmp/changed.txt
+          echo "  (共 $(wc -l < /tmp/changed.txt) 项)"
+
+          git push --force origin "HEAD:refs/heads/$BRANCH"
+          echo "== 已替换 $BRANCH =="
+          git log --oneline -1

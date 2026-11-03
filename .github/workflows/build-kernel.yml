@@ -1,0 +1,231 @@
+# ============================================================================
+#  JKM-AL00 (Kirin 710 / Jackman) 内核 —— 为 MIUI 12.5 GSI 补兼容
+#
+#  工具链完全复用本仓库 Build_Kernel.yml 已验证的方案：
+#    ubuntu:20.04 容器 + AOSP GCC 4.9 (LineageOS 镜像) + O=out
+#
+#  两个源分支 × 两个 profile：
+#    src     EMUI9.1      = JKM_EMUI9.1_KernelSU      （设备跑 EMUI 9.1 时用）
+#            HarmonyOS2.0 = JKM_HarmonyOS2.0_KernelSU （设备跑 HarmonyOS 2.0 时用，
+#                          多了 CONFIG_LZ4M_COMPRESS/DECOMPRESS，挂 EROFS vendor 可能需要）
+#    profile selinux      = 只开 CONFIG_SECURITY_SELINUX_DEVELOP（permissive 前提，风险最低）
+#            full         = 再加 memcg / 标准 cgroup / fanotify
+#
+#  产物是可直接 fastboot flash kernel 的镜像（ANDROID! 在偏移 0，与官方 release 一致）
+# ============================================================================
+name: build-kernel-gsi
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "JKM_EMUI9.1_GSI*"
+    paths:
+      - ".github/workflows/build-kernel.yml"
+      - ".github/kernel-config/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:20.04
+      options: --privileged
+    defaults:
+      run:
+        shell: bash
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        src:
+          - { name: EMUI9.1,      ref: JKM_EMUI9.1_SukiSU-Ultra }
+          - { name: HarmonyOS2.0, ref: JKM_HarmonyOS2.0_SukiSU-Ultra }
+        profile: [selinux, full, ksu]
+    env:
+      TZ: Asia/Shanghai
+      DEFCONFIG: merge_kirin710_defconfig
+      ARCH: arm64
+      CROSS_COMPILE: aarch64-linux-android-
+      CROSS_COMPILE_ARM32: arm-linux-gnueabi-
+      OUTNAME: kernel_gsi_${{ matrix.src.name }}_${{ matrix.profile }}
+
+    steps:
+      - name: Checkout 内核源码 (${{ matrix.src.ref }})
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.src.ref }}
+          fetch-depth: 1
+
+      - name: Checkout CI 配置（来自 workflow 所在分支）
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          path: ci-files
+          fetch-depth: 1
+
+      - name: 依赖 + AOSP GCC 4.9 工具链
+        run: |
+          set -e
+          ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+          apt-get update -y
+          apt-get install --no-install-recommends -y \
+            bash sudo tar wget curl make python2 python-is-python2 flex unzip ca-certificates xz-utils \
+            mkbootimg cpio device-tree-compiler git bc bison build-essential \
+            gcc-9 g++-9 libelf-dev libssl-dev liblz4-tool lzop zip zlib1g-dev \
+            gcc-arm-linux-gnueabi binutils-aarch64-linux-gnu
+          # AOSP GCC 4.9 的 wrapper 脚本 shebang 是 #!/usr/bin/python，focal 只装了 python2
+          [ -e /usr/bin/python ] || ln -sf /usr/bin/python2 /usr/bin/python
+          python --version
+          git clone --depth=1 \
+            https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 \
+            aarch64-linux-android-4.9
+          echo "$(pwd)/aarch64-linux-android-4.9/bin" >> "$GITHUB_PATH"
+
+      - name: 接入 KernelSU（失败则用空桩）
+        run: |
+          set -e
+          # drivers/Kconfig 里 source "drivers/kernelsu/Kconfig"，但仓库里没有这个目录，
+          # 必须由 KernelSU 的 setup.sh 生成；生不出来就用空桩，本次构建不需要 root。
+          if [ ! -f drivers/kernelsu/Kconfig ]; then
+            echo "== 尝试 KernelSU 官方 setup.sh =="
+            curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" \
+              | bash -s builtin || true
+          fi
+          if [ ! -f drivers/kernelsu/Kconfig ]; then
+            echo "== setup.sh 未生效，创建空桩 =="
+            # 仓库里 drivers/kernelsu 是个指向 ../../KernelSU/kernel 的符号链接，
+            # 而那个目录是空的，所以先删链接再建真目录
+            rm -f drivers/kernelsu
+            mkdir -p drivers/kernelsu
+            printf 'menu "KernelSU"\n\nconfig KSU\n\tbool "KernelSU (stub, not integrated)"\n\tdefault n\n\nendmenu\n' \
+              > drivers/kernelsu/Kconfig
+            printf '# stub: 本次构建未集成 KernelSU\n' > drivers/kernelsu/Makefile
+            touch .ksu_stub
+          fi
+          ls -l drivers/kernelsu/Kconfig
+
+      - name: 生成 .config 并叠加 GSI 兼容片段
+        run: |
+          set -e
+          make O=out $DEFCONFIG
+
+          FRAG="ci-files/.github/kernel-config/gsi-${{ matrix.profile }}.config"
+          echo "== 应用 $FRAG =="
+          while IFS='=' read -r opt want; do
+            name="${opt#CONFIG_}"
+            case "$want" in
+              y|m) echo "  enable  $name"
+                   scripts/config --file out/.config --enable "$name" 2>/dev/null || true ;;
+              n)   echo "  disable $name"
+                   scripts/config --file out/.config --disable "$name" 2>/dev/null || true ;;
+            esac
+          done < <(tr -d '\r' < "$FRAG" | grep -E '^CONFIG_[A-Z0-9_]+=')
+
+          # defconfig 里 CONFIG_KSU=y，但 KernelSU 源码没集成（drivers/kernelsu 是空桩），
+          # 必须关掉：drivers/Makefile:220 是 obj-$(CONFIG_KSU) += kernelsu/，
+          # 桩里没有目标文件，链接会报 cannot find drivers/kernelsu/built-in.o
+          make O=out olddefconfig
+
+          # 内核版本串标注：Android 设置 → 关于手机 → 内核版本 显示的就是这一串
+          # （uname -r / linux_banner 都用 UTS_RELEASE）。
+          # LOCALVERSION_AUTO=n（官方 defconfig），不会追加 git 描述，结果可复现。
+          # 长度核算：内核 __NEW_UTS_LEN=64，实际串最长 48 字符，放得下。
+          # 用 sed 而不用 scripts/config：VER_TAG 以 "-" 开头，避免被当成选项解析。
+          VER_TAG="-JKM_${{ matrix.src.name }}_${{ matrix.profile }}_Wudarensheng@Github"
+          if grep -q "^CONFIG_LOCALVERSION=" out/.config; then
+            sed -i "s|^CONFIG_LOCALVERSION=.*|CONFIG_LOCALVERSION=\"$VER_TAG\"|" out/.config
+          else
+            printf 'CONFIG_LOCALVERSION="%s"\n' "$VER_TAG" >> out/.config
+          fi
+          echo "== 版本标注 =="
+          grep "^CONFIG_LOCALVERSION=" out/.config
+
+          echo
+          echo "== 校验关键项 =="
+          FAIL=0
+          while IFS='=' read -r opt want; do
+            if [ "$want" = "n" ]; then
+              if grep -q "^# ${opt} is not set" out/.config; then
+                echo "  OK    ${opt}=n"
+              elif grep -q "^${opt}=" out/.config; then
+                echo "  FAIL  ${opt} 期望 n，实际 $(grep "^${opt}=" out/.config)"
+                FAIL=1
+              else
+                echo "  SKIP  ${opt}  (本内核树没有这个选项)"
+              fi
+            else
+              if grep -q "^${opt}=y" out/.config; then
+                echo "  OK    ${opt}=y"
+              elif grep -q "^# ${opt} is not set" out/.config; then
+                echo "  FAIL  ${opt} 期望 y 但被关掉了（依赖不满足）"
+                FAIL=1
+              else
+                echo "  SKIP  ${opt}  (本内核树没有这个选项)"
+              fi
+            fi
+          done < <(tr -d '\r' < "$FRAG" | grep -E '^CONFIG_[A-Z0-9_]+=')
+          echo
+          echo "== 相关项最终状态 =="
+          grep -E "SELINUX_DEVELOP|^CONFIG_MEMCG|CGROUP_DEVICE|CGROUP_PIDS|CGROUP_NET_|^CONFIG_FANOTIFY|BINDERFS|HIVIEW_SELINUX|HISI_SELINUX_PROT|LZ4M|LOCALVERSION|^CONFIG_KPROBES|^CONFIG_KSU" out/.config || true
+          if [ "$FAIL" = "1" ]; then
+            echo "::error::有选项没生效，见上面 FAIL 行"
+            exit 1
+          fi
+
+      - name: 编译 Image.gz
+        run: |
+          set -e
+          make O=out -j"$(nproc --all)" Image.gz
+          ls -l out/arch/arm64/boot/Image.gz
+
+      - name: 打包成可刷的 kernel 镜像
+        run: |
+          set -e
+          OUT="${OUTNAME}.img"
+          CMDLINE="loglevel=4 initcall_debug=n page_tracker=on unmovable_isolate1=2:192M,3:224M,4:256M printktimer=0xfff0a000,0x534,0x538 androidboot.selinux=permissive buildvariant=user"
+
+          # 仓库自带的 tools/mkbootimg 是个坏文件（内容是下载报错），改用 AOSP 官方脚本
+          git clone --depth=1 https://android.googlesource.com/platform/system/tools/mkbootimg/ mkbootimg-src
+
+          # 参数与官方 release 完全一致：base/tags_offset/kernel_offset/ramdisk_offset
+          python3 mkbootimg-src/mkbootimg.py \
+            --kernel out/arch/arm64/boot/Image.gz \
+            --base 0x0 \
+            --cmdline "$CMDLINE" \
+            --tags_offset 0x07A00000 \
+            --kernel_offset 0x00080000 \
+            --ramdisk_offset 0x07c00000 \
+            --header_version 1 \
+            --os_version 9 \
+            --os_patch_level 2019-11-01 \
+            --output "$OUT"
+          ls -l "$OUT"
+
+          # 自检：结构必须和官方 release 一致
+          python3 -c "
+          import struct
+          d = open('$OUT','rb').read()
+          assert d[:8] == b'ANDROID!', 'ANDROID! 不在偏移 0'
+          ks,ka,rs,ra,ss,sa,ta,page,hv,osv = struct.unpack_from('<10I', d, 8)
+          cmd = d[64:576].split(b'\x00')[0].decode()
+          print('kernel_size=%d ramdisk_size=%d page=%d header_version=%d' % (ks,rs,page,hv))
+          print('cmdline:', cmd)
+          assert page == 2048, 'page size 必须是 2048'
+          assert hv == 1, 'header_version 必须是 1'
+          assert rs == 0, 'ramdisk_size 必须是 0'
+          assert 'androidboot.selinux=permissive' in cmd, 'cmdline 里没有 permissive'
+          assert 'unmovable_isolate1' in cmd, '丢了华为的 unmovable_isolate1'
+          print('自检通过')
+          "
+
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.OUTNAME }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            ${{ env.OUTNAME }}.img
+            out/arch/arm64/boot/Image.gz
+            out/.config
+            out/System.map

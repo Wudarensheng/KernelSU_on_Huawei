@@ -1,0 +1,272 @@
+# ============================================================================
+#  JKM (Huawei Enjoy 9 Plus / Kirin 710) —— Linux 主线 LTS 移植构建
+#
+#  一次运行完成四件事，全部在 CI 上做，本地不编译、不上传 1.4 GB 源码：
+#    1. 从 kernel.org 下载并 sha256 校验 linux-6.6.162.tar.xz
+#    2. 叠加本仓库的移植层（DTS / config fragment / 文档）
+#    3. 交叉编译 Image.gz + hi6250-jkm.dtb，打包成可刷的 Android boot 镜像并校验
+#    4. 以当前分支 HEAD 为父提交，把完整主线源码树 force push 回本分支
+#
+#  档位：workflow_dispatch.inputs.ksu
+#    false (默认) = 纯净主线内核
+#    true          = 集成 KernelSU（CONFIG_KPROBES + CONFIG_KSU）
+#
+#  注意：本 workflow 的 push 触发带 paths 限定；用 GITHUB_TOKEN 写回源码时
+#  GitHub 不会再触发新的一次 run，因此不会自循环。
+# ============================================================================
+name: mainline-lts
+
+on:
+  workflow_dispatch:
+    inputs:
+      ksu:
+        description: "集成 KernelSU（ksu 档）"
+        type: boolean
+        default: false
+      push_source:
+        description: "把完整主线源码树写回本分支"
+        type: boolean
+        default: true
+  push:
+    branches:
+      - "jkm_Mainline_6.6lts"
+    paths:
+      - ".github/workflows/mainline.yml"
+      - ".github/mainline/**"
+      - "docs/**"
+      - "README.md"
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: mainline-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  KVER: "6.6.162"
+  KERNEL_SHA256: "4aa89f3652fc131e5d39990f3bcd4b9e131028af3f315dbe83f3a8557dc06f06"
+  ARCH: arm64
+  CROSS_COMPILE: aarch64-linux-gnu-
+  BRANCH: jkm_Mainline_6.6lts
+  TZ: Asia/Shanghai
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 240
+
+    steps:
+      - name: 解析运行档位
+        run: |
+          set -e
+          KSU="${{ inputs.ksu }}"; [ "$KSU" = "true" ] || KSU=false
+          PUSH="${{ inputs.push_source }}"; [ "$PUSH" = "false" ] || PUSH=true
+          VARIANT=clean; [ "$KSU" = "true" ] && VARIANT=ksu
+          echo "KSU=$KSU" >> "$GITHUB_ENV"
+          echo "PUSH_SOURCE=$PUSH" >> "$GITHUB_ENV"
+          echo "VARIANT=$VARIANT" >> "$GITHUB_ENV"
+          echo "VER_TAG=-JKM_mainline6.6_${VARIANT}_Wudarensheng@Github" >> "$GITHUB_ENV"
+          echo "ksu=$KSU  push_source=$PUSH  variant=$VARIANT"
+          if [ "$KSU" = "true" ]; then
+            echo "::warning::ksu 档 CI 编译与产物校验已通过（run #5，39 项全绿，见 docs/KSU_STATUS.md），但真机运行状态未验证；刷机出问题先回退纯净档"
+          fi
+
+      # 分支里是完整内核源码，全量 checkout 太慢；只取 CI 配置与文档
+      - name: 取出 CI 配置（sparse checkout）
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 1
+          sparse-checkout: |
+            .github
+            docs
+            README.md
+
+      - name: 依赖与 aarch64 交叉工具链
+        run: |
+          set -e
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt-get update -y
+          sudo apt-get install --no-install-recommends -y \
+            build-essential gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu \
+            flex bison bc libelf-dev libssl-dev libncurses-dev \
+            device-tree-compiler cpio xz-utils zstd curl ca-certificates \
+            python3 git
+          aarch64-linux-gnu-gcc --version | head -1
+          dtc --version
+
+      - name: 下载并校验主线源码
+        run: |
+          set -e
+          mkdir -p "$GITHUB_WORKSPACE/linux-src"
+          curl -fL --retry 3 --retry-delay 5 -o linux.tar.xz \
+            "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-${KVER}.tar.xz"
+          echo "${KERNEL_SHA256}  linux.tar.xz" | sha256sum -c -
+          tar -xf linux.tar.xz -C linux-src --strip-components=1
+          echo "== 源码版本 =="
+          grep -E '^(VERSION|PATCHLEVEL|SUBLEVEL|EXTRAVERSION) =' linux-src/Makefile
+          GOT=$(awk '/^VERSION =/{v=$3} /^PATCHLEVEL =/{p=$3} /^SUBLEVEL =/{s=$3} END{print v"."p"."s}' linux-src/Makefile)
+          test "$GOT" = "$KVER" || { echo "::error::版本不符: $GOT != $KVER"; exit 1; }
+          test -f linux-src/COPYING
+          test -f linux-src/arch/arm64/boot/dts/hisilicon/Makefile
+
+      - name: 叠加 JKM 主线移植层
+        run: |
+          set -e
+          bash .github/mainline/scripts/apply-mainline.sh \
+            "$PWD/linux-src" "$PWD/.github/mainline" "$PWD"
+
+      - name: 接入 KernelSU（ksu 档）
+        run: |
+          set -e
+          if [ "$KSU" != "true" ]; then
+            echo "clean 档，跳过 KernelSU 集成"
+            exit 0
+          fi
+          bash .github/mainline/scripts/setup-ksu.sh "$PWD/linux-src"
+
+      - name: 生成 .config
+        run: |
+          set -e
+          mkdir -p out
+          make -C linux-src O="$PWD/out" ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" defconfig
+          bash .github/mainline/scripts/apply-config.sh \
+            linux-src out/.config .github/mainline/config/base.config
+          if [ "$KSU" = "true" ]; then
+            bash .github/mainline/scripts/apply-config.sh \
+              linux-src out/.config .github/mainline/config/ksu.config
+          fi
+          # LOCALVERSION 以 "-" 开头，scripts/config --set-str 会把它当成选项，只能用 sed
+          if grep -q '^CONFIG_LOCALVERSION=' out/.config; then
+            sed -i "s|^CONFIG_LOCALVERSION=.*|CONFIG_LOCALVERSION=\"$VER_TAG\"|" out/.config
+          else
+            printf 'CONFIG_LOCALVERSION="%s"\n' "$VER_TAG" >> out/.config
+          fi
+          # defconfig 可能带发行版证书路径，kernel.org 源码树里没有那些 pem，
+          # 不清空会在编译阶段报 "No such file or directory"
+          sed -i 's|^CONFIG_SYSTEM_TRUSTED_KEYS=.*|CONFIG_SYSTEM_TRUSTED_KEYS=""|' out/.config
+          sed -i 's|^CONFIG_MODULE_SIG_KEY=.*|CONFIG_MODULE_SIG_KEY=""|' out/.config
+          make -C linux-src O="$PWD/out" ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" olddefconfig
+          echo "== 关键配置 =="
+          grep -E '^(CONFIG_LOCALVERSION|CONFIG_LOCALVERSION_AUTO|CONFIG_IKCONFIG|CONFIG_ARCH_HISI|CONFIG_KSU|CONFIG_KPROBES|CONFIG_SERIAL_AMBA_PL011|CONFIG_CMDLINE|CONFIG_SECURITY_SELINUX)' out/.config || true
+          if [ "$KSU" = "true" ]; then
+            # ksu 档的依赖没满足就在这里立刻失败，别等十几分钟编译才炸
+            echo "== ksu 档关键项断言 =="
+            for item in "CONFIG_SECURITY_SELINUX=y" \
+                        "CONFIG_SECURITY_SELINUX_DEVELOP=y" \
+                        "CONFIG_KSU=y" "CONFIG_KPROBES=y"; do
+              grep -qx "$item" out/.config || { echo "::error::ksu 档缺少 $item"; exit 1; }
+              echo "  OK $item"
+            done
+            grep -qE '^CONFIG_SECURITY_SELINUX_SIDTAB_HASH_BITS=[0-9]+' out/.config || \
+              { echo "::error::缺 SIDTAB_HASH_BITS（SELinux 依赖没开全）"; exit 1; }
+            grep -qE '^CONFIG_SECURITY_SELINUX_SID2STR_CACHE_SIZE=[0-9]+' out/.config || \
+              { echo "::error::缺 SID2STR_CACHE_SIZE"; exit 1; }
+            echo "  OK 两个 SELinux int 选项已生成"
+          fi
+
+      - name: 编译 Image.gz 与设备树
+        run: |
+          set -e
+          make -C linux-src O="$PWD/out" ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" \
+            -j"$(nproc)" Image.gz dtbs
+          ls -lh out/arch/arm64/boot/Image.gz \
+                 out/arch/arm64/boot/dts/hisilicon/hi6250-jkm.dtb
+
+      - name: 打包 Android boot 镜像
+        run: |
+          set -e
+          # cmdline 保留厂商逆向得到的参数（见 docs/REVERSE_ENGINEERING.md），
+          # 追加主线串口输出；华为私有参数主线内核会忽略，不影响启动。
+          CMDLINE="loglevel=8 initcall_debug=n page_tracker=on unmovable_isolate1=2:192M,3:224M,4:256M printktimer=0xfff0a000,0x534,0x538 buildvariant=user console=ttyAMA0,115200n8 earlycon androidboot.selinux=permissive"
+          python3 .github/mainline/scripts/pack-boot.py \
+            --kernel out/arch/arm64/boot/Image.gz \
+            --dtb out/arch/arm64/boot/dts/hisilicon/hi6250-jkm.dtb \
+            --cmdline "$CMDLINE" \
+            --output "JKM_mainline_${KVER}_${VARIANT}.img" \
+            --appended "JKM_mainline_${KVER}_${VARIANT}_dtb-appended.img"
+          ls -lh JKM_mainline_*.img
+
+      - name: 产物独立校验（生成流程之外的第二套解析）
+        run: |
+          # pipefail 必须开：否则 python 校验失败会被 | tee 的退出码 0 掩盖（踩过）
+          set -euo pipefail
+          # VER_TAG 以 "-" 开头，argparse 会把 "--vertag -JKM..." 当成新选项而报
+          # "expected one argument"，必须用 --opt=value 形式传
+          python3 .github/mainline/scripts/verify.py \
+            --img "JKM_mainline_${KVER}_${VARIANT}.img" \
+            --image-gz out/arch/arm64/boot/Image.gz \
+            --config out/.config \
+            --dtb out/arch/arm64/boot/dts/hisilicon/hi6250-jkm.dtb \
+            --variant "$VARIANT" \
+            --kver "$KVER" \
+            --vertag="$VER_TAG" | tee verify-report.txt
+
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: JKM-mainline-${{ env.KVER }}-run${{ github.run_number }}
+          if-no-files-found: error
+          # out/.config 是点开头的隐藏文件，不开这个会被 artifact 静默排除
+          include-hidden-files: true
+          retention-days: 14
+          path: |
+            JKM_mainline_*.img
+            out/arch/arm64/boot/Image.gz
+            out/arch/arm64/boot/dts/hisilicon/hi6250-jkm.dtb
+            out/.config
+            out/System.map
+            verify-report.txt
+
+      # 只有全部编译与校验通过，才把源码树写回分支
+      - name: 以当前分支为父提交写回完整主线源码
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ "$PUSH_SOURCE" != "true" ]; then
+            echo "push_source=false，只保留本次构建的产物，不写回源码树"
+            exit 0
+          fi
+          SRC="$PWD/linux-src"
+          REPO="$PWD"
+          WORK="$RUNNER_TEMP/push-mainline"
+          REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+
+          mkdir -p "$WORK" && cd "$WORK"
+          git init -q
+          git remote add origin "$REMOTE"
+          git fetch --depth=1 origin "$BRANCH"
+          BASE=$(git rev-parse FETCH_HEAD)
+          echo "重建前分支 SHA = $BASE"
+          echo "回滚命令： git push --force origin ${BASE}:refs/heads/${BRANCH}"
+          git update-ref "refs/heads/$BRANCH" "$BASE"
+          git symbolic-ref HEAD "refs/heads/$BRANCH"
+
+          # 只传一棵树：不 checkout，避免 runner 上同时存在两份 1.4 GB 源码
+          cp -a "$SRC"/. .
+          cp -a "$REPO/.github"/. .github/
+          cp "$REPO/README.md" .
+          cp -a "$REPO/docs"/. docs/
+          test -f Makefile && grep -q "^VERSION = 6" Makefile
+
+          git add -A
+          # Linux 顶层 .gitignore 的 ".*" 会忽略 .github/，导致 workflow 和移植层
+          # 在写回的分支里凭空消失；apply-mainline.sh 已追加 !.github/，这里再强制一次
+          git add -f .github
+          test -f .github/workflows/mainline.yml
+          if git -c user.name="Wudarensheng" \
+                 -c user.email="Wudarensheng@users.noreply.github.com" \
+                 commit -q -m "mainline: Linux ${KVER} + JKM Kirin 710 移植层（${VARIANT}）"; then
+            # 不要直接 | head：set -o pipefail 下 SIGPIPE(141) 会让 push 永远跑不到
+            git diff --name-status "$BASE" HEAD > "$RUNNER_TEMP/changed.txt" || true
+            echo "== 变更文件数: $(wc -l < "$RUNNER_TEMP/changed.txt") =="
+            head -20 "$RUNNER_TEMP/changed.txt"
+            git push --force origin "HEAD:refs/heads/${BRANCH}"
+            echo "== 已写回 ${BRANCH} =="
+            git log --oneline -1
+          else
+            echo "源码树与分支内容一致，跳过推送"
+          fi
